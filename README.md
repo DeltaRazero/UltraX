@@ -5,17 +5,20 @@
 
 UltraX is a compiler that creates MDX performance files for Sharp x68000 MXDRV2. It includes its own small library for MDX creation.
 
-Also included are 
+Also included are libPyFMT (a library for FM patch creation/manipulation) and libDefleMask (a library for reading DefleMask .dmf files).
 
 
 ## Dependencies
 
-UltraX relies on modules from Python's standard library (3.5) and from libPyFMT.
+UltraX relies on modules from Python's standard library (3.5), libPyFMT and libDefleMask.
 * Python standard library:
-`copy, glob, gzip, importlib, io, math, ntpath, os, sys`
+`ntpath, os, sys`
 
 * libPyFMT:
 `opmn`
+
+* libDefleMask:
+`. . .`
 
 
 ## Changelog
