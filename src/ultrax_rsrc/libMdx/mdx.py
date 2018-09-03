@@ -15,9 +15,9 @@ class Mdx:
         e = bytearray(self.Header.Export() )
 
         for tone in self.Tones:
-            e.append(tone.Export() )
+            e.extend(tone.Export() )
 
         for data in self.Data:
-            e.append(data)
+            e.extend(data)
 
         return e
