@@ -1,4 +1,4 @@
-from .header import *
+from .header import Header
 
 
 class Mdx:
