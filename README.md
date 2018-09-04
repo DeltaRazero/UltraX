@@ -21,6 +21,15 @@ UltraX relies on modules from Python's standard library (3.5), libPyFMT and libD
 `. . .`
 
 
+## Goals
+
+The following list presents the current ambitions of the project and if they are reached yet:
+
+- [ ] Provide a MXDRV2 compiler on a modern operating system
+- [ ] Provide a (built-in?) toolset with helping compose for MXDRV2
+- [ ] Provide a way to convert DefleMask .dmf files to .MDX
+
+
 ## Changelog
 
 . . .
