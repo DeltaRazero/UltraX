@@ -1,24 +1,29 @@
+import struct
+from .encoding import *
+
 
 class Header:
     '''MDX header object.'''
     def __init__(self):
-        self.Title = bytearray(b"\x00\x0d\x0a\x10")
-        self.PdxFilename = bytearray(b"\x00")
+        self.Title = ''
+        self.PdxFilename = ''
         self.ToneDataOffset = 0
-        self.SongDataOffset = 0
-        return
-
-    def SetTitle(self, Title):
-        self.Title = bytearray(Title, 'shift-jis')
-        self.Title.append(b"\x00\x0d\x0a\x10")
-        return
-
-    def SetPdxFilename(self, PdxFilename):
-        self.PdxFilename = bytearray(PdxFilename)
-        # TODO: Check for file extension
-        self.PdxFilename.append(b"\x00")
+        self.SongDataOffsets = [0 for _ in range(16)]
         return
 
     def Export(self):
         '''Exports the current MDX header object to a bytearray.'''
-        return bytearray([self.Title, self.PdxFilename, self.ToneDataOffset, self.SongDataOffset])
+        e = bytearray()
+        for item in [self.Title.encode('shift-jis'), b"\x00\x0d\x0a\x10", self.PdxFilename.upper().encode()]:
+            e.extend(item)
+
+        if (self.PdxFilename[3:].upper() != ".PDX"):
+            e.extend(".PDX".encode())
+        e.extend(b"\x00")
+
+        e.extend(struct.pack(ENC_WORD, self.ToneDataOffset))
+
+        for item in self.SongDataOffsets:
+            e.extend(struct.pack(ENC_WORD, item))
+
+        return e
