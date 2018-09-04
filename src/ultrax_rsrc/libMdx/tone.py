@@ -10,6 +10,7 @@ class Tone(opmn.OPMN_Channel):
         return
 
     def SetTone(self, Patch):
+        '''Set tone data from an existing FMT OPMN object.'''
         self.Fb = Patch.Fb
         self.Alg = Patch.Alg
         self.Op = Patch.Op
