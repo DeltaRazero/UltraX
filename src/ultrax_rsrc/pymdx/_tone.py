@@ -7,6 +7,7 @@ class Tone(opmn.OPMN_Channel):
     def __init__(self):
         self.ToneId = 0
         self.SlotMask = 0
+        opmn.OPMN_Channel.__init__(self)
         return
 
     def SetTone(self, Patch):
@@ -21,11 +22,11 @@ class Tone(opmn.OPMN_Channel):
         e = bytearray([self.ToneId, self.Fb, self.Alg, self.SlotMask])
         for op in self.Op:
             e.extend([
-                (op.Dt1<<4   | op.Mult),
-                (op.Tl),
-                (op.Ks<<6    | op.Ar),
-                (op.Am_On<<7 | op.Dr),
-                (op.Dt2<<6   | op.Sr),
-                (op.Sl<<4    | op.Rr)
+                op.Dt1<<4   | op.Mult,
+                op.Tl,
+                op.Ks<<6    | op.Ar,
+                op.Am_On<<7 | op.Dr,
+                op.Dt2<<6   | op.Sr,
+                op.Sl<<4    | op.Rr
             ])
         return e
