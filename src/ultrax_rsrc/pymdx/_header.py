@@ -1,5 +1,5 @@
-import struct
-from .encoding import *
+import struct as struct
+from ._encoding import *
 
 
 class Header:
