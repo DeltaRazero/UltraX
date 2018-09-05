@@ -5,7 +5,7 @@
 
 UltraX is a compiler that creates MDX performance files for Sharp x68000 MXDRV2. It includes its own small library for MDX creation.
 
-Also included are libPyFMT (a library for FM patch creation/manipulation) and libDefleMask (a library for reading DefleMask .dmf files).
+Also included is libPyFMT (a library for FM patch creation/manipulation).
 
 
 ## Dependencies
@@ -17,9 +17,6 @@ UltraX relies on modules from Python's standard library (3.5), libPyFMT and libD
 * libPyFMT:
 `opmn`
 
-* libDefleMask:
-`. . .`
-
 
 ## Goals
 
@@ -27,7 +24,7 @@ The following list presents the current ambitions of the project and if they are
 
 - [ ] Provide a MXDRV2 compiler on a modern operating system
 - [ ] Provide a (built-in?) toolset with helping compose for MXDRV2
-- [ ] Provide a way to convert DefleMask .dmf files to .MDX
+- [ ] Provide a way to convert DefleMask .dmf files to .MDX (+ .PDX)
 
 
 ## Changelog
