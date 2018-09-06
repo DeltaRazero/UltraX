@@ -10,7 +10,7 @@ Also included is libPyFMT (a library for FM patch creation/manipulation).
 
 ## Dependencies
 
-UltraX relies on modules from Python's standard library (3.5), libPyFMT and libDefleMask.
+UltraX relies on modules from Python's standard library (3.5), libPyFMT.
 * Python standard library:
 `ntpath, os, sys`
 

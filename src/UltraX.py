@@ -14,6 +14,13 @@
 import sys, argparse
 from ultrax_rsrc import pymdx
 
+a = pymdx.Mdx()
+a.DataTracks[1].Add.Rest(129)
+
+b = a.DataTracks[1].Export()
+
+print(b)
+
 
 
 if __name__ == "__main__":
