@@ -17,39 +17,44 @@
 # * 0x02 / 3   clocks = 64th    note / l64
 
 
-# The following classes are a way of substituting structs, which aren't available in Python
-
-
-#region ||  Clock value calculation  ||
-
-
 
 
 class Rest:
+    '''Rest command.'''
     def __init__(self, Clocks):
         self.Clocks = Clocks
 
     def Export(self):
         e = bytearray()
+        while (self.Clocks >= 128):
+            e.append(0x7F)
+            self.Clocks -= 128
+        e.append(self.Clocks)
+        return e
 
-        Loop = True
-        while (Loop):
-            if (self.Clocks >= 128):
-                e.append(0x7F)
-                self.Clocks -= 128
-            else:
-                e.append(self.Clocks)
-                Loop = False
+
+class Note:
+    '''Note command.'''
+    def __init__(self, Data, Clocks):
+        self.Data = Data
+        self.Clocks = Clocks
+
+    def Export(self):
+        e = bytearray()
+        while (self.Clocks >= 128):
+            e.append(0x7F)
+            self.Clocks -= 128
+        e.append(self.Clocks)
         return e
 
 
 class Commands:
 
     def __init__(self, datalist):
-        self.datalist = datalist
+        self.a = datalist.append
 
-    def Rest(self, Clocks):
-        self.datalist.append(Rest(Clocks))
+    def Rest(self, Clocks): self.a(Rest(Clocks))
+    def Note(self, Data, Clocks): self.a(Note(Data, Clocks))
 
 
     
