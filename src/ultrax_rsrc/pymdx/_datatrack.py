@@ -14,14 +14,12 @@ from enum import Enum
 
 
 class DataTrack():
-    '''fuckboi'''
 
     def __init__(self):
         self._Data = []
 
         #self.SetClockValue_WholeNote(ClockWholeNote)
         self.Add = Commands(self._Data)
-        #Commands.__init__(self)
         return
 
     #def SetClockValue_WholeNote(self, ClockWholeNote):

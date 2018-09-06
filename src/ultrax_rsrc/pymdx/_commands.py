@@ -20,7 +20,6 @@
 
 
 class Rest:
-    '''Rest command.'''
     def __init__(self, Clocks):
         self.Clocks = Clocks
 
@@ -34,7 +33,6 @@ class Rest:
 
 
 class Note:
-    '''Note command.'''
     def __init__(self, Data, Clocks):
         self.Data = Data
         self.Clocks = Clocks
@@ -53,8 +51,13 @@ class Commands:
     def __init__(self, datalist):
         self.a = datalist.append
 
-    def Rest(self, Clocks): self.a(Rest(Clocks))
-    def Note(self, Data, Clocks): self.a(Note(Data, Clocks))
+    def Rest(self, Clocks):
+        '''Rest command.'''
+        self.a(Rest(Clocks))
+
+    def Note(self, Data, Clocks):
+        '''Note command.'''
+        self.a(Note(Data, Clocks))
 
 
     
