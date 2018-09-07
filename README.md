@@ -5,7 +5,27 @@
 
 UltraX is a compiler that creates MDX performance files for Sharp x68000 MXDRV2. It includes its own small library for MDX creation.
 
-Also included is libPyFMT (a library for FM patch creation/manipulation).
+Also included is libPyFMT (a library for FM patch creation/manipulation) **[currently not available yet]**.
+
+
+## Features
+
+UltraX supports the following features:
+- Native Python compiling to .MDX
+- Native Python compiling to OKI ADPCM + .PDX (?)
+- Supports all commands of the MXDRV v2.06+16/02EX specification
+- Support for 1 channel ADPCM, PCM-4, PCM-8 and Mercury-Unit
+- MML text file compiling
+- DefleMask .dmf file (YM2151+SPCM mode) compiling
+
+
+UltraX's core compiling system (pymdx) is written in a modular manner so that everybody could write their own compiler specialised in whatever way is desired. pymdx can do create, manipulate and export the following:
+- MDX object
+- Header object
+- Tone definition object
+- Track data (MDX commands), individually per channel
+
+*See the documentation for an indepth explanation of all functions included in pymdx.* 
 
 
 ## Dependencies
