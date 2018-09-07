@@ -14,14 +14,22 @@
 import sys, argparse
 from ultrax_rsrc import pymdx
 
-DEBUG_MODE = True
 
 e = pymdx.Mdx()
 
+tonetest = pymdx.Tone()
+tonetest.Alg = 5
+e.Tones.append(tonetest)
 
 
+e.DataTracks[1].Add.Note(0x99, 400)
+e.DataTracks[1].Add.Note(0x99, 200)
+e.DataTracks[1].Add.Note(0x99, 257)
 
 
+exported = e.Export()
+print (exported)
+#print (exported[len(exported)-1])
 
 
 if __name__ == "__main__":

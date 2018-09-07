@@ -3,17 +3,8 @@ from enum import Enum
 
 
 
-# class ClockValues(Enum, ClockWholeNote):
-#     self._CLOCK_VALUE_1 = ClockWholeNote-1   # = 191
-#     self._CLOCK_VALUE_2  = int(round(ClockWholeNote /  2))-1
-#     self._CLOCK_VALUE_4  = int(round(ClockWholeNote /  4))-1
-#     self._CLOCK_VALUE_8  = int(round(ClockWholeNote /  8))-1
-#     self._CLOCK_VALUE_16 = int(round(ClockWholeNote / 16))-1
-#     self._CLOCK_VALUE_32 = int(round(ClockWholeNote / 32))-1
-#     self._CLOCK_VALUE_64 = int(round(ClockWholeNote / 64))-1
 
-
-class DataTrack():
+class Datatrack():
 
     def __init__(self):
         self._Data = []
@@ -27,7 +18,7 @@ class DataTrack():
 
 
     def Export(self):
-        """Exports the current tone object to a bytearray."""
+        """Exports the current datatrack object to a bytearray."""
         e = bytearray()
 
         for i in self._Data:

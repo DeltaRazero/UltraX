@@ -26,11 +26,11 @@ class Command:
         """Rest command."""
         self._a(Rest(Clocks))
 
-    def Note(self, Note, Clocks):
+    def Note(self, Data, Clocks):
         """Note command.\n
         Valid note range: 0x80 - 0xDF\n
         0x80 = o0d+  /  0xDF = o8d"""
-        self._a(Note(Note, Clocks))
+        self._a(Note(Data, Clocks))
 
 
 
@@ -46,10 +46,10 @@ class Rest:
 
     def Export(self):
         e = bytearray()
-        while (self.Clocks >= 128):
+        while (self.Clocks > 128):
             e.append(0x7F)
             self.Clocks -= 128
-        e.append(self.Clocks)
+        e.append(self.Clocks-1)
         return e
 
 
@@ -60,10 +60,10 @@ class Note:
 
     def Export(self):
         e = bytearray()
-        while (self.Clocks >= 128):
-            e.append(0x7F)
-            self.Clocks -= 128
-        e.append(self.Clocks)
+        while (self.Clocks > 256):
+            e.extend([0xF7, self.Data, 0xFF])
+            self.Clocks -= 256
+        e.extend([self.Data, self.Clocks-1])
         return e
 
 
