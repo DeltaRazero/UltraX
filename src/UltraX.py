@@ -14,12 +14,13 @@
 import sys, argparse
 from ultrax_rsrc import pymdx
 
-a = pymdx.Mdx()
-a.DataTracks[1].Add.Rest(129)
+DEBUG_MODE = True
 
-b = a.DataTracks[1].Export()
+e = pymdx.Mdx()
 
-print(b)
+
+
+
 
 
 
@@ -33,21 +34,19 @@ UltraX, MDX compiler for MXDRV2\n\
 Usage: py ultrax.py [filename] [] [] {option}\n\
     [filename]: Name of the input file\n\
 Options:\n\
-    -Px: Set .dmf PCM mode to x (0 = OKI ADPCM (default), 1 = MercuryUnit)"
-    )
+    -Px: Force MML PCM mode to x (0 = OKI ADPCM only (default), 1 = MercuryUnit only)\n\
+    -px: Set .dmf PCM mode to x (0 = OKI ADPCM (default), 1 = MercuryUnit)\n\
+    ")
 
     parser.add_argument('filename', action="store")
     parser.add_argument('-P', action="store", dest="P", type=int)
+    parser.add_argument('-p', action="store", dest="p", type=int)
 
-    #args = parser.parse_args(['-a', '-bval', '-c', '3'])
+    
+    #args = parser.parse_args(['filename', '-P1', '-c', '3'])   # Debugging
     #args = parser.parse_args()
     if (len(sys.argv) < 2):
         print(parser.description)
+
     #endregion
 
-
-    
-
-# parser.add_argument('-at', action="store_true", default=False)
-# parser.add_argument('-b', action="store", dest="baa")
-# parser.add_argument('-c', action="store", dest="c", type=int)

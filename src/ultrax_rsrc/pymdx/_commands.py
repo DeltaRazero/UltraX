@@ -16,8 +16,29 @@
 # * 0x05 / 6   clocks = 32th    note / l32
 # * 0x02 / 3   clocks = 64th    note / l64
 
+class Command:
+    """MDX performance commands."""
+    
+    def __init__(self, datalist):
+        self._a = datalist.append    # Set reference to _datatrack->_Data instance
+
+    def Rest(self, Clocks):
+        """Rest command."""
+        self._a(Rest(Clocks))
+
+    def Note(self, Note, Clocks):
+        """Note command.\n
+        Valid note range: 0x80 - 0xDF\n
+        0x80 = o0d+  /  0xDF = o8d"""
+        self._a(Note(Note, Clocks))
 
 
+
+
+
+
+
+#region ||  
 
 class Rest:
     def __init__(self, Clocks):
@@ -46,18 +67,7 @@ class Note:
         return e
 
 
-class Commands:
 
-    def __init__(self, datalist):
-        self.a = datalist.append
-
-    def Rest(self, Clocks):
-        '''Rest command.'''
-        self.a(Rest(Clocks))
-
-    def Note(self, Data, Clocks):
-        '''Note command.'''
-        self.a(Note(Data, Clocks))
 
 
     

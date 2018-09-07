@@ -2,7 +2,7 @@ from libPyFMT import opmn
 
 
 class Tone(opmn.OPMN_Channel):
-    '''MDX tone definition object.'''
+    """MDX tone definition object."""
 
     def __init__(self):
         self.ToneId = 0
@@ -11,14 +11,14 @@ class Tone(opmn.OPMN_Channel):
         return
 
     def SetTone(self, Patch):
-        '''Set tone data from an existing FMT OPMN object.'''
+        """Set tone data from an existing FMT OPMN object."""
         self.Fb = Patch.Fb
         self.Alg = Patch.Alg
         self.Op = Patch.Op
         return
 
     def Export(self):
-        '''Exports the current tone object to a bytearray.'''
+        """Exports the current tone object to a bytearray."""
         e = bytearray([self.ToneId, self.Fb, self.Alg, self.SlotMask])
         for op in self.Op:
             e.extend([

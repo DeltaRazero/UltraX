@@ -1,4 +1,4 @@
-from ._commands import Commands
+from ._commands import Command
 from enum import Enum
 
 
@@ -19,7 +19,7 @@ class DataTrack():
         self._Data = []
 
         #self.SetClockValue_WholeNote(ClockWholeNote)
-        self.Add = Commands(self._Data)
+        self.Add = Command(self._Data)
         return
 
     #def SetClockValue_WholeNote(self, ClockWholeNote):
@@ -27,7 +27,7 @@ class DataTrack():
 
 
     def Export(self):
-        '''Exports the current tone object to a bytearray.'''
+        """Exports the current tone object to a bytearray."""
         e = bytearray()
 
         for i in self._Data:
