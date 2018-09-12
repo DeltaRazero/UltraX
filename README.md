@@ -16,6 +16,8 @@ UltraX supports the following features:
 - Supports all commands of the MXDRV v2.06+16/02EX specification
 - Support for 1 channel ADPCM, PCM-4, PCM-8 and Mercury-Unit
 - MML text file compiling
+    - Macros and pattern macros
+    - PPMCK styled envelope macros
 - DefleMask .dmf file (YM2151+SPCM mode) compiling
 
 
