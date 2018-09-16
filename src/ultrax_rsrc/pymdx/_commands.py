@@ -5,7 +5,15 @@
 #
 # MININMUM + MAXMIMUM
 # * 0x00 = 1 clock
-# * 0x8e = 256 clocks   (max amount of clocks for one note)
+# * 0xff = 256 clocks   (max amount of clocks for one note)
+#
+# CALCULATION:
+# maindivider = 256 / 192
+# mainclock = (256 / (maindivider)*multiplier)
+# l1 = (mainclock / 1) - 1
+# l2 = (mainclock / 2) - 1
+# l4 = (mainclock / 4) - 1
+# etc.
 #
 # MUSIC NOTATION VALUES
 # * 0xbf / 192 clocks = whole   note / l1
@@ -16,20 +24,66 @@
 # * 0x05 / 6   clocks = 32th    note / l32
 # * 0x02 / 3   clocks = 64th    note / l64
 
+opm_clock = 4000000
+
 class Command:
-    """MDX performance commands."""
+    """
+    MDX performance commands.
+    """
     
     def __init__(self, datalist):
         self._a = datalist.append    # Set reference to _datatrack->_Data instance
 
     def Rest(self, Clocks):
-        """Rest command | 休符 コマンド"""
-        self._a(Rest(Clocks))
+        """
+        Rest command | 休符 コマンド
+        """
+        self._a(_Rest(Clocks))
 
     def Note(self, Data, Clocks):
-        """Note command | 音符 コマンド\n
-        Valid note range: 0x80 (o0d+) -- 0xDF (o8d)"""
-        self._a(Note(Data, Clocks))
+        """
+        Note command | 音符 コマンド\n
+        Valid note range: 0x80 (o0d+) -- 0xDF (o8d)
+        """
+        self._a(_Note(Data, Clocks))
+
+    def Tempo(self, Data):
+        """
+        Tempo command | . . .\n
+
+        """
+        self._a(_Tempo_Bpm(Data))
+
+    def Tempo_TimerB(self, Data):
+        """
+        Tempo command | . . .\n
+
+        """
+        self._a(_Tempo_TimerB(Data))
+
+    def OpmRegister(self, Register, Data):
+        self._a(_OpmRegister(Register, Data))
+
+    def Tone(self, Data):
+        self._a(_Tone(Data))
+
+    def Pan(self, Data):
+        self._a(_Pan(Data))
+
+    def Volume(self, Data):
+        self._a(_Volume(Data))
+
+    def Volume_Increase(self):
+        self._a(_Volume_Increase())
+
+    def Volume_Decrease(self):
+        self._a(_Volume_Decrease())
+
+    def Gate(self, Data):
+        self._a(_Gate(Data))
+
+    def Legato(self):
+        self._a(_Legato())
 
 
 
@@ -39,7 +93,7 @@ class Command:
 
 #region ||  MDX Commands  ||
 
-class Rest:     # 休符データ
+class _Rest:     # 休符データ
     def __init__(self, Clocks):
         self.Clocks = Clocks
 
@@ -52,7 +106,7 @@ class Rest:     # 休符データ
         return e
 
 
-class Note:     # 音符データ
+class _Note:     # 音符データ
     def __init__(self, Data, Clocks):
         self.Data = Data
         self.Clocks = Clocks
@@ -67,7 +121,10 @@ class Note:     # 音符データ
         return e
 
 
-class Tempo:    # テンポ設定
+# opm_tempo = 256 - 60 * opm_clock / (bpm_tempo * 48 * 1024)          opm_tempo = 256 - (78125 / (16 * bpm_tempo))
+# bpm_tempo = 60 * opm_clock / (48 * 1024 * (256 - opm_tempo))        bpm_tempo = 78125 / (16 * (256 - opm_tempo))
+
+class _Tempo_TimerB:    # テンポ設定
     def __init__(self, Data):   # TODO: Calculate BPM to data
         self.Data = Data
 
@@ -75,8 +132,18 @@ class Tempo:    # テンポ設定
         e = bytearray([0xFF, self.Data])
         return e
 
+class _Tempo_Bpm:    # テンポ設定
+    def __init__(self, Data):   # TODO: Calculate BPM to data
+        self.Data = Data
 
-class OpmRegister:  # OPMレジスタ設定
+    def Export(self):
+        global opm_clock
+        timerb = 256 - 60 * opm_clock / (self.Data * 48 * 1024)
+        e = bytearray([0xFF, timerb])
+        return e
+
+
+class _OpmRegister:  # OPMレジスタ設定
     def __init__(self, Register, Data):
         self.Register = Register
         self.Data = Data
@@ -86,7 +153,7 @@ class OpmRegister:  # OPMレジスタ設定
         return e
 
 
-class Tone:     # 音色設定
+class _Tone:     # 音色設定
     def __init__(self, Data):
         self.Data = Data
 
@@ -95,7 +162,7 @@ class Tone:     # 音色設定
         return e
 
 
-class Pan:      # 出力位相設定
+class _Pan:      # 出力位相設定
     def __init__(self, Data):
         self.Data = Data
 
@@ -104,7 +171,7 @@ class Pan:      # 出力位相設定
         return e
 
 
-class Volume:   # 音量設定
+class _Volume:   # 音量設定
     def __init__(self, Data):
         self.Data = Data
 
@@ -113,19 +180,19 @@ class Volume:   # 音量設定
         return e
 
 
-class VolumeIncrease:   # 音量増大
+class _Volume_Increase:   # 音量増大
     def Export(self):
         e = bytearray([0xFA])
         return e
 
 
-class VolumeDecrease:   # 音量減小
+class _Volume_Decrease:   # 音量減小
     def Export(self):
         e = bytearray([0xF9])
         return e
 
 
-class Gate:     # ゲートタイム
+class _Gate:     # ゲートタイム
     def __init__(self, Data):
         self.Data = Data
 
@@ -134,7 +201,7 @@ class Gate:     # ゲートタイム
         return e
 
 
-class Legato:   # Disable keyoff for next note / キーオフ無効
+class _Legato:   # Disable keyoff for next note / キーオフ無効
     def Export(self):
         e = bytearray([0xF7])
         return e
