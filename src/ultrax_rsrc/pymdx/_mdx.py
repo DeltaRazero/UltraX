@@ -25,8 +25,7 @@ class Mdx:
         trackdata = bytearray()
         for c, b in enumerate([track.Export() for track in self.DataTracks]):
             trackdata.extend(b)
-            self.Header.SongDataOffsets[c] = len(b)
-
+            self.Header._SongDataOffsets[c] = len(b)
 
         # Export
         e = bytearray(self.Header.Export() )

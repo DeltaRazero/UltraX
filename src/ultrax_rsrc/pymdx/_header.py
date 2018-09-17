@@ -7,8 +7,8 @@ class Header:
     def __init__(self):
         self.Title = ''
         self.PdxFilename = ''
-        self.ToneDataOffset = 0
-        self.SongDataOffsets = [0 for _ in range(16)]
+        self._ToneDataOffset = 0
+        self._SongDataOffsets = [0 for _ in range(16)]
         return
 
     def Export(self):
@@ -21,9 +21,9 @@ class Header:
             e.extend(".PDX".encode())
         e.extend(b"\x00")
 
-        e.extend(struct.pack(ENC_WORD, self.ToneDataOffset))
+        e.extend(struct.pack(ENC_WORD, self._ToneDataOffset))
 
-        for item in self.SongDataOffsets:
+        for item in self._SongDataOffsets:
             e.extend(struct.pack(ENC_WORD, item))
 
         return e
