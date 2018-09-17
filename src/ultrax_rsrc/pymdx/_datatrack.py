@@ -2,8 +2,6 @@ from ._commands import Command
 from enum import Enum
 
 
-
-
 class Datatrack():
 
     def __init__(self):
