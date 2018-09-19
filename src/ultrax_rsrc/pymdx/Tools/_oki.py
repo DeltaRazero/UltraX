@@ -19,40 +19,35 @@ class Oki:
         -1, -1, -1, -1, 2, 4, 6, 8
     ]
 
-    # Converts a single sample:
-    # signed linear 16 bit --> Oki ADPCM 4 bit
+    # Converts a single sample: signed linear 16 bit --> Oki ADPCM 4 bit
     # See bottom of this file for comments/notes on the algorithm
-    def _EncodeSample(self, Smp):
-        estim = self.mc_estim   
-        df = Smp - self.mc_amp  
-        dl = self._ADPCM_ESTIM[self.mc_estim]   
-        c = ((df / 16) * 8) / dl
+    def _EncodeSample(self, n):
+        df = n - self.amp # Delta of current sample - previous estimated sample
+        dl = self._ADPCM_ESTIM[self.estim]   
+        c = ((df / 16) * 8) / dl    # Scale 16bit to 12bit
 
-        if (df < 0):
-            b = int(-c/2)
-            s = 0x08
-        else:
-            b = int(c/2)
-            s = 0x00
+        b = int(c/2)
+        if (df < 0):    # If delta negative
+            b = -b
+            s = 0x08    # Set negative bit (bit3)
+        else: s = 0x00
 
-        if (b > 0x07):
-            b = 0x07
+        if (b > 0x07): b = 0x07     # Clip ADPCM sample (3 bits max) 
 
-        s |= b
+        s |= b  # Combine
 
-        self.mc_amp += self._ADPCM_ESTIM_INDEX[s] * dl
-        estim += self._ADPCM_ESTIM_STEP[b]
+        self.amp += self._ADPCM_ESTIM_INDEX[s] * dl
+        self.estim += self._ADPCM_ESTIM_STEP[b]
 
-        if (estim < 0):
-            estim = 0
-        elif (estim > 48):
-            estim = 48
+        # Clip value
+        if (self.estim < 0): self.estim = 0
+        elif (self.estim > 48): self.estim = 48
 
-        self.mc_estim = estim
         return s
 
 
     def Encode(self, wavedata):
+        """Encode 8bit or 16bit linear PCM """
 
         # read wave from a wave module
 
@@ -61,16 +56,13 @@ class Oki:
         # if 8bit encoding:
         # normalize routine
 
-        self.mc_amp = 0
-        self.mc_estim = 0
-        enc = self._EncodeSample
-
+        self.amp = 0; self.estim = 0    # Reset
         e = bytearray()
         for c, v in enumerate(wavedata):
             if not ((c-1)%2):
-                temp = enc(v)
+                temp = self._EncodeSample(v)
             else:
-                e.append(enc(v)<<4 | temp)
+                e.append(temp<<4 | self._EncodeSample(v))   # Combine
 
         return e
 
