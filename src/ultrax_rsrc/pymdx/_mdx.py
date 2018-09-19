@@ -1,4 +1,3 @@
-
 from ._header import Header
 from ._datatrack import Datatrack
 
@@ -19,16 +18,16 @@ class Mdx:
 
         tonedata = bytearray()
         [tonedata.extend(b) for b in 
-            [tone.Export() for tone in self.Tones]
+            [tone._Export() for tone in self.Tones]
         ]
 
         trackdata = bytearray()
-        for c, b in enumerate([track.Export() for track in self.DataTracks]):
+        for c, b in enumerate([track._Export() for track in self.DataTracks]):
             trackdata.extend(b)
             self.Header._SongDataOffsets[c] = len(b)
 
         # Export
-        e = bytearray(self.Header.Export() )
+        e = bytearray(self.Header._Export() )
         e.extend(tonedata)
         e.extend(trackdata)
 

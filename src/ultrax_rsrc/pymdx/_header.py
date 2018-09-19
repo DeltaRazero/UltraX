@@ -11,10 +11,10 @@ class Header:
         self._SongDataOffsets = [0 for _ in range(16)]
         return
 
-    def Export(self):
+    def _Export(self):
         '''Exports the current MDX header object to a bytearray.'''
         e = bytearray()
-        for item in [self.Title.encode('shift-jis'), b"\x00\x0d\x0a\x10", self.PdxFilename.upper().encode()]:
+        for item in [self.Title.encode('shift-jis'), b"\x00\x0d\x0a\x1a", self.PdxFilename.upper().encode()]:
             e.extend(item)
 
         if (self.PdxFilename[3:].upper() != ".PDX"):

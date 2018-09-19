@@ -9,7 +9,7 @@ class Datatrack():
         self.Add = Command(self._Data)
         return
 
-    def Export(self):
+    def _Export(self):
         """Exports the current datatrack object to a bytearray."""
         e = bytearray()
 

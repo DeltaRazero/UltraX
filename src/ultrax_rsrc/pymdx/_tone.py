@@ -17,7 +17,7 @@ class Tone(opmn.OPMN_Channel):
         self.Op = Patch.Op
         return
 
-    def Export(self):
+    def _Export(self):
         """Exports the current tone object to a bytearray."""
         e = bytearray([self.ToneId, self.Fb, self.Alg, self.SlotMask])
         for op in self.Op:
