@@ -1,31 +1,33 @@
-#region ||  Public command adder  ||
-
 OPM_CLOCK = 4000000 # Hz
 
 class Command:
     """
     MDX performance commands.
     """
-    
+    #region ||  Internal props  ||
     def __init__(self, datalist):
         self._a = datalist.append    # Set reference to _datatrack->_Data instance
         self._e = datalist.extend
         self._i = datalist.insert
 
-        self._rsl = []  # Repeat start,  byte counter list
-        self._rel = []  # Repeat escape, byte counter list
+        self._rsl = []  # Repeat start,     byte counter list
+        self._rel = []  # Repeat escape,    byte counter list
+        self._lm = 0    # Loop mark,        byte counter
 
-    def _i_rsl(self, n): # Increase repeat start list byte counter
+    def _i_rsl(self, n): # Increase repeat start byte counter list
         if (self._rsl != []):
             [i+n for i in self._rsl]
 
-    def _i_rel(self, n): # Increase repeat escape list byte counter
+    def _i_rel(self, n): # Increase repeat escape byte counter list
         if (self._rel != []):
             [i+n for i in self._rel]
 
+    def _i_rel(self, n): # Increase loop mark byte counter
+        if (self._lm < 1):
+            self._lm += n
+    #endregion
 
-
-
+    #region ||  Public commands interface  ||
     def Rest(self, Clocks):
         """
         Rest command | 休符 コマンド
@@ -39,7 +41,6 @@ class Command:
         self._i_rsl(1+cmdCount)
         self._i_rel(1+cmdCount)
         self._a(_Rest(Clocks))
-
 
     def Note(self, Data, Clocks):
         """
@@ -65,9 +66,9 @@ class Command:
         Tempo command | . . .\n
 
         """
-        self._a(_Tempo_Bpm(Data))
         self._i_rsl(2)
         self._i_rel(2)
+        self._a(_Tempo_Bpm(Data))
 
     def Tempo_TimerB(self, Data):
         """
@@ -137,12 +138,7 @@ class Command:
         self._i_rsl(3)
         self._i_rel(3)
         self._rel.append(0)  # New byte counter
-
-        
-
-        
-
-#endregion
+    #endregion
 
 
 #region ||  MDX Commands (Private)  ||
@@ -150,7 +146,6 @@ class Command:
 class _Rest:     # 休符データ
     def __init__(self, Clocks):
         self.Clocks = Clocks
-
     def Export(self):
         return bytearray(self.Clocks-1)
         # e = bytearray()
@@ -165,7 +160,6 @@ class _Note:     # 音符データ
     def __init__(self, Data, Clocks):
         self.Data = Data
         self.Clocks = Clocks
-
     def Export(self):
         # if (0x80 > self.Data > 0xDF  or  self.Clocks < 0): raise AnException
         return bytearray([self.Data, self.Clocks-1])
@@ -182,17 +176,15 @@ class _Note:     # 音符データ
 class _Tempo_Bpm:    # テンポ設定
     def __init__(self, Data):   # TODO: Calculate BPM to data
         self.Data = Data
-
     def Export(self):
         global OPM_CLOCK
         timerb = 256 - 60 * OPM_CLOCK / (self.Data * 48 * 1024)
         return bytearray([0xFF, timerb])
 
-        
+
 class _Tempo_TimerB:    # テンポ設定
     def __init__(self, Data):   # TODO: Calculate BPM to data
         self.Data = Data
-
     def Export(self):
         return bytearray([0xFF, self.Data])
 
@@ -201,7 +193,6 @@ class _OpmRegister:  # OPMレジスタ設定
     def __init__(self, Register, Data):
         self.Register = Register
         self.Data = Data
-
     def Export(self):
         return bytearray([self.Register, self.Data])
 
@@ -209,7 +200,6 @@ class _OpmRegister:  # OPMレジスタ設定
 class _Tone:     # 音色設定
     def __init__(self, Data):
         self.Data = Data
-
     def Export(self):
         return bytearray([0xFD, self.Data])
 
@@ -217,7 +207,6 @@ class _Tone:     # 音色設定
 class _Pan:      # 出力位相設定
     def __init__(self, Data):
         self.Data = Data
-
     def Export(self):
         return bytearray([0xFC, self.Data])
 
@@ -225,7 +214,6 @@ class _Pan:      # 出力位相設定
 class _Volume:   # 音量設定
     def __init__(self, Data):
         self.Data = Data
-
     def Export(self):
         return bytearray([0xFB, self.Data])
 
@@ -243,7 +231,6 @@ class _Volume_Decrease:   # 音量減小
 class _Gate:     # ゲートタイム
     def __init__(self, Data):
         self.Data = Data
-
     def Export(self):
         return bytearray([0xF8, self.Data])
 
@@ -256,7 +243,6 @@ class _Legato:   # Disable keyoff for next note / キーオフ無効
 class _Repeat_Start:
     def __init__(self, Data):
         self.Data = Data
-
     def Export(self):
         return bytearray([0xF6, self.Data, 0x00])
 
@@ -264,7 +250,6 @@ class _Repeat_Start:
 class _Repeat_End:
     def __init__(self, Data):
         self.Data = Data
-
     def Export(self):
         return bytearray([0xF5, self.Data])
 
@@ -272,7 +257,6 @@ class _Repeat_End:
 class _Repeat_Escape:
     def __init__(self, Data):
         self.Data = Data
-
     def Export(self):
         return bytearray([0xF4, self.Data])
 
@@ -280,7 +264,6 @@ class _Repeat_Escape:
 class _Detune:
     def __init__(self, Data):
         self.Data = Data
-
     def Export(self):
         return bytearray([0xF3, self.Data])
 
@@ -288,7 +271,6 @@ class _Detune:
 class _Portamento:
     def __init__(self, Data):
         self.Data = Data
-
     def Export(self):
         return bytearray([0xF2, self.Data])
 
