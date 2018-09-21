@@ -4,11 +4,11 @@ from ._encoding import *
 
 class Header:
     '''MDX header object.'''
-    def __init__(self):
+    def __init__(self, ExPcm=False):
         self.Title = ''
         self.PdxFilename = ''
         self._ToneDataOffset = 0
-        self._SongDataOffsets = [0 for _ in range(16)]
+        self._SongDataOffsets = [0 for _ in range(16 if ExPcm else 9)]
         return
 
     def _Export(self):
@@ -17,7 +17,7 @@ class Header:
         for item in [self.Title.encode('shift-jis'), b"\x00\x0d\x0a\x1a", self.PdxFilename.upper().encode()]:
             e.extend(item)
 
-        if (self.PdxFilename[3:].upper() != ".PDX"):
+        if (self.PdxFilename != ''  and  self.PdxFilename[3:].upper() != ".PDX"):
             e.extend(".PDX".encode())
         e.extend(b"\x00")
 
