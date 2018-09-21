@@ -1,3 +1,6 @@
+import struct as struct
+from ._encoding import *
+
 OPM_CLOCK = 4000000 # Hz
 
 class Command:
@@ -16,15 +19,23 @@ class Command:
 
     def _i_rsl(self, n): # Increase repeat start byte counter list
         if (self._rsl != []):
-            [i+n for i in self._rsl]
+            for i in range(len(self._rsl)): self._rsl[i]+=n
+            #[i+n for i in self._rsl]
 
     def _i_rel(self, n): # Increase repeat escape byte counter list
         if (self._rel != []):
-            [i+n for i in self._rel]
+            for i in range(len(self._rsl)): self._rel[i]+=n
+            #[i+n for i in self._rel]
 
-    def _i_rel(self, n): # Increase loop mark byte counter
-        if (self._lm < 1):
+    def _i_lm(self, n): # Increase loop mark byte counter
+        if (self._lm > 0):
             self._lm += n
+
+    def _updateCounters(self, n):
+        self._i_lm(n)
+        self._i_rsl(n)
+        self._i_rel(n)
+
     #endregion
 
     #region ||  Public commands interface  ||
@@ -38,8 +49,7 @@ class Command:
             Clocks -= 128
             cmdCount += 1
 
-        self._i_rsl(1+cmdCount)
-        self._i_rel(1+cmdCount)
+        self._updateCounters(1+cmdCount)
         self._a(_Rest(Clocks))
 
     def Note(self, Data, Clocks):
@@ -56,8 +66,7 @@ class Command:
             self._a(_Legato())
             cmdCount += 1
 
-        self._i_rsl(2+cmdCount)
-        self._i_rel(2+cmdCount)
+        self._updateCounters(2+cmdCount)
         self._a(_Note(Data, Clocks))
 
 
@@ -66,8 +75,7 @@ class Command:
         Tempo command | . . .\n
 
         """
-        self._i_rsl(2)
-        self._i_rel(2)
+        self._updateCounters(2)
         self._a(_Tempo_Bpm(Data))
 
     def Tempo_TimerB(self, Data):
@@ -75,59 +83,48 @@ class Command:
         Tempo command | . . .\n
 
         """
-        self._i_rsl(2)
-        self._i_rel(2)
+        self._updateCounters(2)
         self._a(_Tempo_TimerB(Data))
 
     def OpmRegister(self, Register, Data):
-        self._i_rsl(3)
-        self._i_rel(3)
+        self._updateCounters(3)
         self._a(_OpmRegister(Register, Data))
 
     def Tone(self, Data):
-        self._i_rsl(2)
-        self._i_rel(2)
+        self._updateCounters(2)
         self._a(_Tone(Data))
 
     def Pan(self, Data):
-        self._i_rsl(2)
-        self._i_rel(2)
+        self._updateCounters(2)
         self._a(_Pan(Data))
 
     def Volume(self, Data):
-        self._i_rsl(2)
-        self._i_rel(2)
+        self._updateCounters(2)
         self._a(_Volume(Data))
 
     def Volume_Increase(self):
-        self._i_rsl(1)
-        self._i_rel(1)
+        self._updateCounters(1)
         self._a(_Volume_Increase())
 
     def Volume_Decrease(self):
-        self._i_rsl(1)
-        self._i_rel(1)
+        self._updateCounters(1)
         self._a(_Volume_Decrease())
 
     def Gate(self, Data):
-        self._i_rsl(2)
-        self._i_rel(2)
+        self._updateCounters(2)
         self._a(_Gate(Data))
 
     def Legato(self):
-        self._i_rsl(1)
-        self._i_rel(1)
+        self._updateCounters(1)
         self._a(_Legato())
 
     def Repeat_Start(self, Data):
-        self._i_rsl(3)
-        self._i_rel(3)
-        self._rsl.append(3)  # New byte counter
+        self._updateCounters(3)
+        self._rsl.append(0)  # New byte counter
         self._a(_Repeat_Start(Data))
         
     def Repeat_End(self):
-        self._i_rsl(3)
-        self._i_rel(3)
+        self._updateCounters(3)
         self._a(_Repeat_End(self._rsl[-1]))
         self._rsl.pop(-1)
         if (self._rel != []):
@@ -135,9 +132,22 @@ class Command:
             self._rel.pop(-1)
 
     def Repeat_Escape(self):
-        self._i_rsl(3)
-        self._i_rel(3)
+        self._updateCounters(3)
         self._rel.append(0)  # New byte counter
+
+    def Detune(self, Data):
+        self._updateCounters(3)
+        self._a(_Detune(Data))
+
+    def Portamento(self, Data):
+        self._updateCounters(3)
+        self._a(_Portamento(Data))
+
+    def DataEnd(self, Data=0x00):
+        self._updateCounters(2 if Data==0x00 else 3)
+        self._a(_DataEnd(Data))
+
+
     #endregion
 
 
@@ -251,28 +261,48 @@ class _Repeat_End:
     def __init__(self, Data):
         self.Data = Data
     def Export(self):
-        return bytearray([0xF5, self.Data])
+        e = bytearray([0xF5])
+        e.extend(struct.pack(ENC_WORD, -self.Data))
+        return e
 
 
 class _Repeat_Escape:
     def __init__(self, Data):
         self.Data = Data
     def Export(self):
-        return bytearray([0xF4, self.Data])
+        e = bytearray([0xF4])
+        e.extend(struct.pack(ENC_WORD, self.Data))
+        return e
 
 
 class _Detune:
     def __init__(self, Data):
         self.Data = Data
     def Export(self):
-        return bytearray([0xF3, self.Data])
+        e = bytearray([0xF3])
+        e.extend(struct.pack(ENC_WORD, self.Data))
+        return e
 
 
 class _Portamento:
     def __init__(self, Data):
         self.Data = Data
     def Export(self):
-        return bytearray([0xF2, self.Data])
+        e = bytearray([0xF2])
+        e.extend(struct.pack(ENC_WORD, self.Data))
+        return e
+
+
+class _DataEnd:
+    def __init__(self, Data):
+        self.Data = Data
+    def Export(self):
+        if (self.Data < 1):
+            return bytearray([0xF1, self.Data])
+        else:
+            e = bytearray([0xF1])
+            e.extend(struct.pack(ENC_WORD, self.Data))
+            return e
 
 
 
