@@ -19,19 +19,35 @@ from ultrax_rsrc import pymdx
 
 e = pymdx.Mdx()
 
-tonetest = pymdx.Tone()
-tonetest.Alg = 5
-e.Tones.append(tonetest)
 
 
+tone = pymdx.Tone()
+tone.Alg = 7
+tone.Op[0].Ar = 31
+tone.Op[0].Dr = 15
+tone.Op[0].Sl = 15
+tone.Op[0].Rr = 15
+tone.Op[0].Mult = 1
+tone.Op[0].Tl = 0
+e.Tones.append(tone)
 
-e.DataTracks[1].Add.Note(0x99, 400)
-e.DataTracks[1].Add.Note(0x99, 200)
-e.DataTracks[1].Add.Note(0x99, 257)
+e.DataTracks[0].Add.Tone(0)
+
+e.DataTracks[0].Add.Repeat_Start(2)
+e.DataTracks[0].Add.Note(0xAF, 48)
+e.DataTracks[0].Add.Note(0xAF, 48)
+e.DataTracks[0].Add.Note(0xAF, 48)
+e.DataTracks[0].Add.Repeat_End()
+
+
 
 
 exported = e.Export()
 print (exported)
+
+with open(r"D:\Programming\UltraX\temp\test.mdx", "wb") as f:
+    f.write(exported)
+
 #print (exported[len(exported)-1])
 
 
