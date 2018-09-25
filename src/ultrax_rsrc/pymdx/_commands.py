@@ -17,24 +17,22 @@ class Command:
         self._rel = []  # Repeat escape,    byte counter list
         self._lm = 0    # Loop mark,        byte counter
 
-    def _i_rsl(self, n): # Increase repeat start byte counter list
+    def _inc_rsl(self, n): # Increase repeat start byte counter list
         if (self._rsl != []):
-            for i in range(len(self._rsl)): self._rsl[i]+=n
-            #[i+n for i in self._rsl]
+            for i, _ in enumerate(self._rsl): self._rsl[i]+=n
 
-    def _i_rel(self, n): # Increase repeat escape byte counter list
+    def _inc_rel(self, n): # Increase repeat escape byte counter list
         if (self._rel != []):
-            for i in range(len(self._rsl)): self._rel[i]+=n
-            #[i+n for i in self._rel]
+            for i, _ in enumerate(self._rel): self._rsl[i]+=n
 
-    def _i_lm(self, n): # Increase loop mark byte counter
+    def _inc_lm(self, n): # Increase loop mark byte counter
         if (self._lm > 0):
             self._lm += n
 
     def _updateCounters(self, n):
-        self._i_lm(n)
-        self._i_rsl(n)
-        self._i_rel(n)
+        self._inc_lm(n)
+        self._inc_rsl(n)
+        self._inc_rel(n)
 
     #endregion
 
