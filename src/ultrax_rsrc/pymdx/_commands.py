@@ -7,11 +7,11 @@ class Command:
     """
     MDX performance commands.
     """
-    #region ||  Internal props  ||
-    def __init__(self, datalist):
-        self._a = datalist.append    # Set reference to _datatrack->_Data instance
-        self._e = datalist.extend
-        self._i = datalist.insert
+    #region ||  Internal props  ||  
+    def __init__(self, Datalist):
+        self._a = Datalist.append    # Set reference to _datatrack->_Data instance
+        self._e = Datalist.extend
+        self._i = Datalist.insert
 
         self._rsl = []  # Repeat start,     byte counter list
         self._rel = []  # Repeat escape,    byte counter list
@@ -39,6 +39,7 @@ class Command:
     #endregion
 
     #region ||  Public commands interface  ||
+
     def Rest(self, Clocks):
         """
         Rest command | 休符 コマンド
@@ -70,7 +71,7 @@ class Command:
         self._a(_Note(Data, Clocks))
 
 
-    def Tempo(self, Data):
+    def Tempo_Bpm(self, Data):
         """
         Tempo command | . . .\n
 
@@ -86,9 +87,9 @@ class Command:
         self._updateCounters(2)
         self._a(_Tempo_TimerB(Data))
 
-    def OpmRegister(self, Register, Data):
+    def OpmControl(self, Register, Data):
         self._updateCounters(3)
-        self._a(_OpmRegister(Register, Data))
+        self._a(_OpmControl(Register, Data))
 
     def Tone(self, Data):
         self._updateCounters(2)
@@ -96,6 +97,22 @@ class Command:
 
     def Pan(self, Data):
         self._updateCounters(2)
+
+        if (type(Data) is str):
+            Data = Data.lower()
+            if (Data in ['l', 'c', 'r']):
+                Data = {
+                    'l': 0b01,
+                    'c': 0b11,
+                    'r': 0b10
+                }[Data]
+            else:
+                Data = 0b11
+        else:
+            if Data==0b10:   Data=0b01
+            elif Data==0b01: Data=0b10
+            else: Data=0b11
+
         self._a(_Pan(Data))
 
     def Volume(self, Data):
@@ -118,17 +135,18 @@ class Command:
         self._updateCounters(1)
         self._a(_Legato())
 
-    def Repeat_Start(self, Data):
+    def Repeat_Start(self):
         self._updateCounters(3)
         self._rsl.append(0)  # New byte counter
-        self._a(_Repeat_Start(Data))
         
-    def Repeat_End(self):
+    def Repeat_End(self, Data):
         self._updateCounters(3)
-        self._a(_Repeat_End(self._rsl[-1]))
-        self._rsl.pop(-1)
-        if (self._rel != []):
-            self._i(-self._rel[-1], _Repeat_Escape(self._rel[-1]))
+        self._a(_Repeat_End(self._rsl[-1])) # Add repeat end command
+        self._i(-self._rsl[-1], _Repeat_Start(Data)) # Insert repeat start command at trackdata index (counted from last) of latest byte counter
+        self._rsl.pop(-1) # Remove the appropriote byte counter
+
+        if (self._rel != []):   # If a repeat escape byte counter is active
+            self._i(-self._rel[-1], _Repeat_Escape(self._rel[-1])) # Insert repeat escape command at trackdata index (counted from last)
             self._rel.pop(-1)
 
     def Repeat_Escape(self):
@@ -147,23 +165,77 @@ class Command:
         self._updateCounters(2 if Data==0x00 else 3)
         self._a(_DataEnd(Data))
 
+    def DelayKeyon(self, Data):
+        self._updateCounters(3)
+        self._a(_Portamento(Data))
+
+
+    # /// Extended commands (+16) ///
+    def Ext_16_Terminate(self):
+        self._updateCounters(2)
+
+    def Ext_16_Fadeout(self):
+        self._updateCounters(3)
+
+
+    # /// Extended commands (+17) ///  ※Not widely supported -- ※広くサポートされていない
+    def Ext_17_Pcm8Control(self):
+        self._updateCounters(8)
+
+    def Ext_17_idk(self):
+        self._updateCounters(3)
+
+    def Ext_17_ChannelControl(self):
+        self._updateCounters(3)
+
+    def Ext_17_AddLenght(self):
+        self._updateCounters(3)
+
+    def Ext_17_Note(self, Data, Clocks):
+        """
+        Note command (+17 cmds) | 音符 コマンド\n
+        Valid note range: 0x80 (o0d+) -- 0xDF (o8d)
+        """
+        cmdCount = 2
+
+        if (Clocks >256):
+            self._a(_Note(Data, 256))
+            Clocks -= 256
+            while (Clocks > 256):
+                self._a(_Ext_17_AddLenght(256))
+                Clocks -= 256
+                cmdCount += 3
+
+        self._updateCounters(cmdCount)
+        self._a(_Note(Data, Clocks))
+
+    def Ext_17_UseFlags(self):
+        self._updateCounters(3)
+
+
+    # /// Extended commands (+16/02EX) ///  ※Not widely supported -- ※広くサポートされていない
+    def Ext_16_02EX_Terminate(self):
+        self._updateCounters(2)
+
+    def Ext_16_02EX_RelativeDetune(self):
+        self._updateCounters(4)
+
+    def Ext_16_02EX_Transpose(self):
+        self._updateCounters(3)
+
+    def Ext_16_02EX_RelativeTranspose(self):
+        self._updateCounters(3)
 
     #endregion
 
 
-#region ||  MDX Commands (Private)  ||
+#region ||  MDX Commands (Internal)  ||
 
 class _Rest:     # 休符データ
     def __init__(self, Clocks):
         self.Clocks = Clocks
     def Export(self):
         return bytearray(self.Clocks-1)
-        # e = bytearray()
-        # while (self.Clocks > 128):
-        #     e.append(0x7F)
-        #     self.Clocks -= 128
-        # e.append(self.Clocks-1)
-        # return e
 
 
 class _Note:     # 音符データ
@@ -173,12 +245,6 @@ class _Note:     # 音符データ
     def Export(self):
         # if (0x80 > self.Data > 0xDF  or  self.Clocks < 0): raise AnException
         return bytearray([self.Data, self.Clocks-1])
-        # e = bytearray()
-        # while (self.Clocks > 256):
-        #     e.extend([0xF7, self.Data, 0xFF])
-        #     self.Clocks -= 256
-        # e.extend([self.Data, self.Clocks-1])
-        # return e
 
 
 # opm_tempo = 256 - 60 * opm_clock / (bpm_tempo * 48 * 1024)          opm_tempo = 256 - (78125 / (16 * bpm_tempo))
@@ -188,18 +254,18 @@ class _Tempo_Bpm:    # テンポ設定
         self.Data = Data
     def Export(self):
         global OPM_CLOCK
-        timerb = 256 - 60 * OPM_CLOCK / (self.Data * 48 * 1024)
+        timerb = round(256 - 60 * OPM_CLOCK / (self.Data * 48 * 1024))
         return bytearray([0xFF, timerb])
 
 
 class _Tempo_TimerB:    # テンポ設定
-    def __init__(self, Data):   # TODO: Calculate BPM to data
+    def __init__(self, Data):
         self.Data = Data
     def Export(self):
         return bytearray([0xFF, self.Data])
 
 
-class _OpmRegister:  # OPMレジスタ設定
+class _OpmControl:  # OPMレジスタ設定
     def __init__(self, Register, Data):
         self.Register = Register
         self.Data = Data
