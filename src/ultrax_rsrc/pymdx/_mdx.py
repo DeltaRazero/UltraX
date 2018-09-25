@@ -3,7 +3,7 @@ from ._datatrack import Datatrack
 
 
 class Mdx:
-    '''A MDX performance data object.'''
+    """A MDX performance data object."""
 
     def __init__(self, ExPcm=False):
         self.Header = Header(ExPcm)
