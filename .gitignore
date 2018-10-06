@@ -9,3 +9,9 @@ resources/
 tests/
 temp/
 GH-Pages/
+
+pysox/
+resampy/
+samplerate/
+
+drv/
