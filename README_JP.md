@@ -9,43 +9,44 @@
 </h1>
 
 <h4 align="center">
-    Object-oriented MDX compiler for MXDRV2 made with Python3.
+    Python3で作られたMXDRV2用のオブジェクト指向MDXコンパイラ。
 </h4>
 
 <p align="center">
     <a href="https://www.python.org/">
         <img src="https://img.shields.io/badge/python-3.5 | 3.6 | 3.7-blue.svg?style=flat-square"
             alt="python"></a>
-    <img src="https://img.shields.io/badge/version-v0.1_(incomplete)-red.svg?style=flat-square"
+    <img src="https://img.shields.io/badge/バージョン
+-v0.1_(incomplete)-red.svg?style=flat-square"
         alt="version">
     <a href="https://github.com/DeltaRazero/UltraX/issues">
-        <img src="https://img.shields.io/github/issues/deltarazero/UltraX.svg?style=flat-square"
+        <img src="https://img.shields.io/github/issues/deltarazero/UltraX.svg?style=flat-square&label=%e5%95%8f%e9%a1%8c"
             alt="github_issues"></a>
     <a href="https://opensource.org/licenses/LGPL-3.0">
-        <img src="https://img.shields.io/badge/license-LGPL_v3-blue.svg?style=flat-square"
-            alt="license"></a>
+        <img src="https://img.shields.io/badge/ライセンス-LGPL_v3-blue.svg?style=flat-square"
+            alt="ライセンス"></a>
 </p>
 
 <p align="center">
-    <a href="#about">About</a> •
-    <a href="#features">Features</a> •
+    <a href="#説明">説明</a> •
+    <a href="#概要">概要</a> •
     <a href="#download">Download</a> •
-    <a href="#credits">Credits</a> •
+    <a href="#特別な感謝">特別な感謝</a> •
     <a href="#related">Related</a> •
-    <a href="#License">License</a>
+    <a href="#ライセンス">ライセンス</a>
     <br/>
-    [ <a href="#License">日本語版はこちら</a> ]
+    [ <a href="#">English version here</a> ]
 </p>
 
 
-## About
+## 説明
 
-UltraX is a compiler that creates MDX performance files for the Sharp X680x0 music driver 'MXDRV2' made with Python3. 
+UltraXは、Python3で作成されたSharp X680x0音楽ドライバ「MXDRV2」のMDXパフォーマンスファイルを作成するコンパイラです。
 
-UltraX is developed with object-oriented programming (OOP) and modularity in mind. UltraX also includes its own small library for MDX creation so that future use and creation of other compilers are made easier.
+UltraXは、オブジェクト指向プログラミング（OOP）とモジュール性を念頭に開発されています。 UltraXにはMDX作成用の独自の小さなライブラリが含まれているため、将来の使用や他のコンパイラの作成が容易になります。
 
 
-## Overview
+## 概要
 
 UltraX is split up into the following scripts:
 - `UltraX.py`: the main compiler to generate .MDX performance files.
@@ -114,21 +115,21 @@ Contributing to this project to improve it is always welcome. I highly recommend
 *See [CONTRIBUTING.md](#) for details on the process for submitting pull requests.*
 
 
-## Credits
+## 特別な感謝
 
-I would like to thank the following people for making UltraX possible:
+以下の人々にUltraXを現実としたことに対して礼を言いたいです:
 
-- YURAYSAN, for the MXDRV2 file format documentation.
-- Tetsuya Isaki, for the fast OKI/DIALOGIC ADPCM encoding implementation.
-- ValleyBell, the MAME team and David Lindecrantz (Optiroc), for the fast OKI/DIALOGIC ADPCM decoding implementation.
-- Vampirefrog, for additional documentation.
-- milk., K.MAEKAWA, Missy.M and Yatsube, for making MXDRV. :)
+- YURAYSAN、MXDRV2ファイル形式のドキュメント用。
+- Tetsuya Isaki、迅速なOKI / DIALOGIC ADPCMエンコーディングの実装。
+- ValleyBell、MAMEチームのとDavid Lindecrantz (Optiroc)、迅速なOKI / DIALOGIC ADPCMデコードの実装。
+- Vampirefrog、追加のドキュメント。
+- milk.、K.MAEKAWA、Missy.M、Yatsube、MXDRV製作用。 :)
 
 
 ## License
 
-All included scripts, modules, etc. are licensed under the LGPL v3 license, unless stated otherwise in sourcecode files.
+含まれているすべてのスクリプト、モジュールなどは、ソースコードファイルに別段の記載がない限り、「LGPL v3」ライセンスの下で使用許諾されます。
 
-*See [LICENSE.md](#) or [Opensource.org – LGPL3](https://opensource.org/licenses/LGPL-3.0).*
+*[LICENSE.md](#)または[Opensource.org – LGPL3](https://opensource.org/licenses/LGPL-3.0)を参照してください。*
 
 &nbsp;
