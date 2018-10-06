@@ -1,10 +1,10 @@
 
 <h1 align="center">
     <a href="#">
-        <img src="D:\Programming\UltraX\temp\UltraX_Logo_temp2.png" alt="UltraX_logo" width="110"></a>
+        <img src=".\doc\rsrc\img\UltraX_Logo_temp2.png" alt="UltraX_logo" width="110"></a>
     <br>
     <a href="#">
-        <img src="D:\Programming\UltraX\temp\ultrax_text.png" alt="UltraX" width="210"></a>
+        <img src=".\doc\rsrc\img\ultrax_text.png" alt="UltraX" width="210"></a>
     <br>
 </h1>
 
