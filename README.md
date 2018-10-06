@@ -34,7 +34,7 @@
     <a href="#related">Related</a> •
     <a href="#License">License</a>
     <br/>
-    [ <a href="#License">日本語版はこちら</a> ]
+    [ <a href="https://github.com/DeltaRazero/UltraX/blob/master/README_JP.md">日本語版はこちら</a> ]
 </p>
 
 

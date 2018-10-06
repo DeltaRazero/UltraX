@@ -16,8 +16,7 @@
     <a href="https://www.python.org/">
         <img src="https://img.shields.io/badge/python-3.5 | 3.6 | 3.7-blue.svg?style=flat-square"
             alt="python"></a>
-    <img src="https://img.shields.io/badge/バージョン
--v0.1_(incomplete)-red.svg?style=flat-square"
+    <img src="https://img.shields.io/badge/バージョン-v0.1_(incomplete)-red.svg?style=flat-square"
         alt="version">
     <a href="https://github.com/DeltaRazero/UltraX/issues">
         <img src="https://img.shields.io/github/issues/deltarazero/UltraX.svg?style=flat-square&label=%e5%95%8f%e9%a1%8c"
@@ -35,7 +34,7 @@
     <a href="#related">Related</a> •
     <a href="#ライセンス">ライセンス</a>
     <br/>
-    [ <a href="#">English version here</a> ]
+    [ <a href="https://github.com/DeltaRazero/UltraX/blob/master/README.md">English version here</a> ]
 </p>
 
 
