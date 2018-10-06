@@ -1,4 +1,4 @@
-from ._commands import Command
+from ._commands_itf import Command
 from enum import Enum
 
 
