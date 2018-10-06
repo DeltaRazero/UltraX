@@ -88,7 +88,7 @@ class Command:
         self._updateCounters(2)
         self._a(_cmd.Tempo_TimerB(Data))
 
-    def OpmControl(self, Register, Data):
+    def Opm_Control(self, Register, Data):
         self._updateCounters(3)
         self._a(_cmd.OpmControl(Register, Data))
 
@@ -168,21 +168,67 @@ class Command:
 
     def DelayKeyon(self, Data):
         self._updateCounters(2)
-        NotImplemented
+        self._a(_cmd.DelayKeyon(Data))
 
-    def SyncResume(self, Data):
+    def Sync_Resume(self, Data):
         self._updateCounters(2)
-        NotImplemented
+        self._a(_cmd.SyncResume(Data))
 
-    def SyncWait(self, Data):
+    def Sync_Wait(self, Data):
         self._updateCounters(1)
-        NotImplemented
+        self._a(_cmd.SyncWait(Data))
 
     def AdpcmFreq(self, Data):
         self._updateCounters(2)
         self._a(_cmd.AdpcmFreq(Data))
 
-    def ExpcmEnable(self):
+
+    # :: LFO commands | Pitch ::
+    def Lfo_Pitch_Enable(self):
+        self._updateCounters(2)
+        self._a(_cmd.Lfo_Pitch_Enable())
+
+    def Lfo_Pitch_Disable(self):
+        self._updateCounters(2)
+        self._a(_cmd.Lfo_Pitch_Disable())
+
+    def Lfo_Pitch_Control(self, Wave, Speed, Depth):
+        self._updateCounters(6)
+        self._a(_cmd.Lfo_Pitch_Control(Wave, Speed, Depth))
+
+
+    # :: LFO commands | Volume ::
+    def Lfo_Volume_Enable(self):
+        self._updateCounters(2)
+        self._a(_cmd.Lfo_Volume_Enable())
+
+    def Lfo_Volume_Disable(self):
+        self._updateCounters(2)
+        self._a(_cmd.Lfo_Volume_Disable())
+
+    def Lfo_Volume_Control(self, Wave, Speed, Depth):
+        self._updateCounters(6)
+        self._a(_cmd.Lfo_Volume_Control(Wave, Speed, Depth))
+
+
+    # :: LFO commands | Opm ::
+    def Lfo_Opm_Enable(self):
+        self._updateCounters(2)
+        self._a(_cmd.Lfo_Volume_Enable())
+
+    def Lfo_Opm_Disable(self):
+        self._updateCounters(2)
+        self._a(_cmd.Lfo_Volume_Disable())
+
+    def Lfo_Opm_Control(self, Wave, Speed, Depth):  # TODO: these are wrong input
+        self._updateCounters(7)
+        self._a(_cmd.Lfo_Volume_Control(Wave, Speed, Depth))
+
+
+    def Expcm_Enable(self):
+        """
+        Enable EX-PCM mode |
+        """
         self._updateCounters(1)
         self._a(_cmd.Pcm8Shift())
 
@@ -197,8 +243,9 @@ class _Command_Ext16:
     def Terminate(self):
         self._updateCounters(2)
 
-    def Fadeout(self):
+    def Fadeout(self, Data):
         self._updateCounters(3)
+        self._a(_cmd.Ext_16_Fadeout(Data))
 
 # /// Extended commands (+16/02EX) ///
 class _Command_Ext16_02EX:
@@ -209,14 +256,17 @@ class _Command_Ext16_02EX:
     def Terminate(self):
         self._updateCounters(2)
 
-    def RelativeDetune(self):
+    def RelativeDetune(self, Data):
         self._updateCounters(4)
+        self._a(_cmd.Ext_16_02EX_RelativeDetune(Data))
 
-    def Transpose(self):
+    def Transpose(self, Data):
         self._updateCounters(3)
+        self._a(_cmd.Ext_16_02EX_Transpose(Data))
 
     def RelativeTranspose(self):
         self._updateCounters(3)
+        self._a(_cmd.Ext_16_02EX_RelativeTranspose(Data))
 
 # /// Extended commands (+17) ///  ※Not widely supported -- ※広くサポートされていない
 class _Command_Ext17:
@@ -227,7 +277,7 @@ class _Command_Ext17:
     def Pcm8Control(self):
         self._updateCounters(8)
 
-    def idk(self):
+    def ___(self):  # ???
         self._updateCounters(3)
 
     def ChannelControl(self):
@@ -256,25 +306,6 @@ class _Command_Ext17:
 
     def UseFlags(self):
         self._updateCounters(3)
-
-
-
-
-
-
-
-
-
-#region ||  MDX Commands (Internal)  ||
-
-
-
-#endregion
-
-
-
-    
-
 
 
 
