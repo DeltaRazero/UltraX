@@ -1,5 +1,5 @@
 import struct as struct
-from ._encoding import *
+from .._misc._encoding import *
 
 
 class Header:

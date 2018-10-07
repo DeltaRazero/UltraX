@@ -1,5 +1,5 @@
 import struct as struct
-from ._encoding import *
+from .._misc._encoding import *
 
 OPM_CLOCK = 4000000 # Hz
 

@@ -264,7 +264,7 @@ class _Command_Ext16_02EX:
         self._updateCounters(3)
         self._a(_cmd.Ext_16_02EX_Transpose(Data))
 
-    def RelativeTranspose(self):
+    def RelativeTranspose(self, Data):
         self._updateCounters(3)
         self._a(_cmd.Ext_16_02EX_RelativeTranspose(Data))
 

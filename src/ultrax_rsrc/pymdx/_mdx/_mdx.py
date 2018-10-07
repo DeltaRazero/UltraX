@@ -1,13 +1,13 @@
 from ._header import Header
 from ._datatrack import Datatrack
-from ._encoding import *
+from .._misc._encoding import *
 
 
 class Mdx:
     """A MDX performance data object."""
 
-    def __init__(self, ExPcm=False):
-        c = 16 if ExPcm else 9  # Amount of tracks
+    def __init__(self, Expcm=False):
+        c = 16 if Expcm else 9  # Amount of tracks
         self.Header = Header(c)
         self.Tones = []
         self.DataTracks = [Datatrack() for _ in range(c)]
