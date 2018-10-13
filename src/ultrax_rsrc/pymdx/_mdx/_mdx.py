@@ -17,17 +17,10 @@ class Mdx:
         '''Exports the current MDX object to a bytearray.'''
 
         tonedata = bytearray()
-        [tonedata.extend(t) for t in 
-            [tone._Export() for tone in self.Tones]
-        ]
+        for t in [tone._Export() for tone in self.Tones]: tonedata.extend(t) 
 
         d = [bytearray() for _ in range(len(self.DataTracks))]
         for c, track in enumerate(self.DataTracks):
-            if (track.Add._lm > 0):
-                track.Add.DataEnd(track.Add._lm)    # Loop back with the amount stored in byte counter
-            else:
-                track.Add.DataEnd(0)
-
             d[c].extend(track._Export())
             if (c>0):
                 self.Header._SongDataOffsets[c] = len(d[c-1]) + self.Header._SongDataOffsets[c-1]

@@ -11,8 +11,13 @@ class Datatrack():
 
     def _Export(self):
         """Exports the current datatrack object to a bytearray."""
-        e = bytearray()
 
+        if (self.Add._lmc > 0):
+            self.Add.DataEnd(self.Add._lmc)    # Loop back with the amount stored in byte counter
+        else:
+            self.Add.DataEnd(0)
+
+        e = bytearray()
         for i in self._Data:
             e.extend(i.Export())
 
