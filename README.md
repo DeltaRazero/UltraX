@@ -32,7 +32,7 @@
     <a href="#download">Download</a> •
     <a href="#credits">Credits</a> •
     <a href="#related">Related</a> •
-    <a href="#License">License</a>
+    <a href="#license">License</a>
     <br/>
     [ <a href="https://github.com/DeltaRazero/UltraX/blob/master/README_JP.md">日本語版はこちら</a> ]
 </p>
