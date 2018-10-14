@@ -39,7 +39,7 @@ class Command:
             for i, _ in enumerate(self._rec): self._rsc[i]+=n
         if (self._lmc > 0):      # Increase loop mark byte counter
             self._lmc += n
-        
+
         return
     #endregion
 
@@ -132,8 +132,12 @@ class Command:
                 }[Data]
             else: Data = 0b11
         elif (type(Data) is int):
-            if    Data == 0b10: Data = 0b01
-            elif  Data == 0b01: Data = 0b10
+            if (Data in [0b10, 0b11, 0b01]):
+                Data = {
+                    0b10: 0b01,
+                    0b11: 0b11,
+                    0b01: 0b10
+                }[Data]
             else: Data = 0b11
 
         self._a(_cmd.Pan(Data))
@@ -321,7 +325,7 @@ class Command:
         self._a(_cmd.Lfo_Opm_Disable())
         return
 
-    def Lfo_Opm_Control(self, Wave, Speed, Pmd=0, Amd=0, Pms=0, Ams=0, RestartWave=0):  # TODO: these are wrong input
+    def Lfo_Opm_Control(self, Wave, Speed, Pmd=0, Amd=0, Pms=0, Ams=0, RestartWave=0):
         self._updateCounters(7)
 
         # Pitch / Amp mod depth low precision
@@ -412,7 +416,7 @@ class _Command_Ext17:
 
         Prepares MML command to be inserted into another channel
 
-        -- 
+        --
         """
         self._updateCounters(3)
         self._a(_cmd.Ext_17_Channel_Control(Data))
