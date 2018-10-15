@@ -3,8 +3,8 @@
         "description": "UltraX, MDX compiler for MXDRV2\n-------------------------------\nUsage: python ultrax.py [filename] [] [] {option}\n[filename]: Name of the input file\nOptions:\n-F: Force MML compiling\n"
     },
 
-    "errors": {
-        "testerror1": "aaa"
+    "error": {
+        "open_error": "\n Error opening file."
     }
         
 }
