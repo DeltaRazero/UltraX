@@ -47,9 +47,9 @@ UltraXは、オブジェクト指向プログラミング（OOP）とモジュ�
 
 ## 概要
 
-UltraX is split up into the following scripts:
-- `UltraX.py`: the main compiler to generate .MDX performance files.
-- `UltraX_Tool.py`: a toolbox featuring 
+UltraXは以下のスクリプトで構成されています。
+- `UltraX.py`: .MDXパフォーマンスファイルを作成する用のメインコンパイラ。
+- `UltraX_Tool.py`: ツールボックス。
 
 
 Globally, the following features are supported:
@@ -116,13 +116,13 @@ Contributing to this project to improve it is always welcome. I highly recommend
 
 ## 特別な感謝
 
-以下の人々にUltraXを現実としたことに対して礼を言いたいです:
+以下の人々にUltraXが現実となったことに対してお礼を言いたいです:
 
 - YURAYSAN、MXDRV2ファイル形式のドキュメント用。
-- Tetsuya Isaki、迅速なOKI / DIALOGIC ADPCMエンコーディングの実装。
-- ValleyBell、MAMEチームのとDavid Lindecrantz (Optiroc)、迅速なOKI / DIALOGIC ADPCMデコードの実装。
+- Tetsuya Isaki、速いOKI / DIALOGIC ADPCMエンコーディングの実装。
+- ValleyBell、MAMEチームのとDavid Lindecrantz (Optiroc)、速いOKI / DIALOGIC ADPCMデコードの実装。
 - Vampirefrog、追加のドキュメント。
-- milk.、K.MAEKAWA、Missy.M、Yatsube、MXDRV製作用。 :)
+- milk.、K.MAEKAWA、Missy.M、Yatsube、MXDRVの製作者たち。 :)
 
 
 ## License
