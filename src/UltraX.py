@@ -11,12 +11,14 @@
     | License: LGPL v3
     #---------------------------------------------------------------------#	
 '''
-import\
-    sys,        \
-    argparse,   \
-    glob
+import  argparse
+import  glob
+import  io
+import  os
+import  sys
 
-from ultrax_rsrc import *
+from ultrax_rsrc import  Locale
+from ultrax_rsrc import  compiler
 
 
 #************************************************
@@ -28,6 +30,7 @@ from ultrax_rsrc import *
 # Set the language. See ./ultrax_rsrc/Locale/ for the available languages.
 # 言語を設定します。使用可能な言語について ./ultrax_rsrc/Locale/ を参照してください。
 LANGUAGE = 'eng'
+DEBUG_MODE = True
 
 
 
@@ -36,16 +39,19 @@ LANGUAGE = 'eng'
 """
 on topic: XPMCK style notation for definiitons. e.g. {6'3} unrolls to be {6 6 6}, {6:3} unrolls to {6 5 4 3}, {6:3}+3 unrolls to be {9 8 7 6} etc.
 """
-# r"D:\Programming\UltraX\temp\test.mdx"
+
 
 
 class UltraX():
     global Locale   # Does it need to be a global variable to be used within this class?
+    global DEBUG_MODE
 
 
     def __init__(self):
         self.C_MML = False
         self.C_DMF = False
+
+        self.args  = None
 
 
     # Set the absolute path of the input file 
@@ -53,12 +59,12 @@ class UltraX():
         if os.path.exists(Filename):   # If a full path given
             self.Filepath = Filename
         else:
-            dirpath = os.path.realpath(__file__)    # Path in current directory
+            dirpath = os.path.realpath(__file__)    # Current directory
             
             self.Filepath = os.path.join(dirpath, Filename)
             
             if (os.path.splitext(self.Filepath)[1] == ''):  # If no extension given
-                self.Filename = glob.glob(self.Filepath)[0] # First file that matches in search
+                self.Filepath = glob.glob(self.Filepath+".*")[0] # First file that matches in search
 
             if not os.path.exists(self.Filepath):
                 return 0
@@ -67,26 +73,27 @@ class UltraX():
 
 
     def Parser(self):
-        parser = argparse.ArgumentParser(usage=Locale.JSON_DATA['parser']['description'])
+        parser = argparse.ArgumentParser(usage=Locale.JSON_DATA['parser']['usage'])
 
         parser.add_argument('Filename', action="store", type=str)
-        parser.add_argument('-F', action="store_true", dest="F")
+        parser.add_argument('-F', action="store_true", dest="Force")
+        parser.add_argument('-V', action="store_true", dest="Verbose")
 
         argc = len(sys.argv)
-        if (argc < 2):
+        if (argc < 2  and not DEBUG_MODE):
             print(parser.usage)
         else:
-            args = parser.parse_args()
+            self.args = parser.parse_args([r"D:\Programming\UltraX\temp\test.mml"])
 
-            if not self.SetPath(args.Filename):
+            if not self.SetPath(self.args.Filename):
                 print(parser.usage)
                 print(Locale.JSON_DATA['error']['open_error'])
                 return
 
-            if (args.filename[-4:].lower() in [".mml", ".txt"]  or  args.F):
+            if (self.args.Filename[-4:].lower() in [".mml", ".txt"]  or  self.args.Force):
                 self.C_MML = True
 
-            if (args.filename[-4:].lower() in [".dmf"]):
+            if (self.args.Filename[-4:].lower() in [".dmf"]):
                 self.C_DMF = True
 
         return
@@ -97,8 +104,10 @@ class UltraX():
         self.Parser()
 
         if (self.C_MML  or  self.C_DMF):
+            
             if self.C_MML:
-                pass
+                mml = compiler.mml_ux.Mml(self.Filepath)
+                mml.Compile(self.args)
             elif self.C_DMF:
                 pass
 

@@ -1,10 +1,11 @@
 {
     "parser": {
-        "description": "UltraX, MDX compiler for MXDRV2\n-------------------------------\nUsage: python ultrax.py [filename] [] [] {option}\n[filename]: Name of the input file\nOptions:\n-F: Force MML compiling\n"
+        "usage": "UltraX, MDX compiler for MXDRV2\n-------------------------------\nUsage: python ultrax.py [filename] [] [] {option}\n[filename]: Name of the input file\nOptions:\n-F: Force MML compiling\n"
     },
 
     "error": {
-        "open_error": "\n Error opening file."
+        "open_error": "\n Error opening file.",
+        "undefined": "Command {} at position {} in file {} is not defined."
     }
         
 }
