@@ -104,29 +104,29 @@ class _Ins:
 
 class _Data_FM:
     def __init__(self):
-        self.Alg = None
-        self.Fb = None
+        self.Alg  = None
+        self.Fb   = None
         self.Lfo1 = None
         self.Lfo2 = None
-        self.Op = [_Data_FM_Op() for _ in range(4)]
+        self.Op   = [_Data_FM_Op() for _ in range(4)]
 
 class _Data_FM_Op:
     def __init__(self):
-        self.Am_On = None
-        self.Ar = None
-        self.Dr = None
+        self.Am   = None
+        self.Ar   = None
+        self.Dr   = None
         self.Mult = None
-        self.Rr = None
-        self.Sl = None
-        self.Tl = None
-        self.Dt2 = None
-        self.Ks = None
-        self.Dt = None
-        self.Sr = None  # D2R
+        self.Rr   = None
+        self.Sl   = None
+        self.Tl   = None
+        self.Dt2  = None
+        self.Ks   = None
+        self.Dt   = None
+        self.Sr   = None  # D2R
         self.Sseg = None
 
 DFM_OP_ATTR_LIST = [
-    'Am_On', 'Ar', 'Dr', 'Mult', 'Rr', 'Sl',
+    'Am', 'Ar', 'Dr', 'Mult', 'Rr', 'Sl',
     'Tl', 'Dt2', 'Ks', 'Dt', 'Sr', 'Sseg'
     ]
 
@@ -203,8 +203,8 @@ class Dmf:
                 if (ins.Mode == 1):
                     dfm = _Data_FM()
 
-                    dfm.Alg = f.readu(1)
-                    dfm.Fb = f.readu(1)
+                    dfm.Alg  = f.readu(1)
+                    dfm.Fb   = f.readu(1)
                     dfm.Lfo1 = f.readu(1)
                     dfm.Lfo2 = f.readu(1)
 
@@ -213,7 +213,6 @@ class Dmf:
                             setattr(dfm.Op[i], DFM_OP_ATTR_LIST[j], f.readu(1))
 
                     ins.Data = dfm
-
                 self.Instruments.append(ins)
 
             # Pattern data
@@ -238,7 +237,7 @@ class Dmf:
                             row.Note = f.readu(2)
                             
                             row.Octave = f.readu(2)
-                            if row.Note == 0x0C:    # New octave at 'C'
+                            if (row.Note == 0x0C):    # New octave at 'C'
                                 row.Octave += 1
 
                             row.Volume = f.readu(2)
@@ -252,7 +251,6 @@ class Dmf:
                             row.Instr = f.readu(2)
 
                             pattern.Rows.append(row)
-
                         channel.Patterns[patternId] = pattern
 
                     else:
