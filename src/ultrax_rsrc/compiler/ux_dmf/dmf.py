@@ -21,6 +21,19 @@ class SYSTEM(Enum):
 
 
 
+class Custom_BytesIO(io.BytesIO):
+    def __init__(self, args, *kwargs):
+        io.BytesIO.__init__(self, args, kwargs)
+
+    def read_bool(self):
+        return struct.unpack('?', self.read(1))[0]
+
+    def readu(self, size=None, mode=None):
+        if mode == None:
+            a = {1:'b', 2:'h', 4:'l',}[size]
+        return struct.unpack(a, self.read(size))[0]
+
+
 
 
 
@@ -45,7 +58,9 @@ class _Module:
 
         self.TOTAL_ROWS_PER_PATTERN    = None
         self.TOTAL_ROWS_PATTERN_MATRIX = None
+        self.TOTAL_INSTRUMENTS         = None
         self.SYSTEM_TOTAL_CHANNELS     = None
+
 
         self.PatternMatrix = []
         self.Channels      = []
@@ -96,7 +111,7 @@ class Dmf:
         self.Module = _Module()
         self.Instruments = []
 
-    def Load(self, path):
+    def Load(self, path: str) -> None:
         """
         Read .dmf from disk and populate the current Dmf object with its content.
         
@@ -113,28 +128,28 @@ class Dmf:
 
         #self.CheckModule(path)
 
-        with io.BytesIO(zlib.decompress(open(path, 'rb').read()) ) as f:
+        with Custom_BytesIO(zlib.decompress(open(path, 'rb').read()) ) as f:
             #f = io.BytesIO()
             f.seek(19)
 
             # Header data
-            self.Header.SongName   = f.read( f.read(1) ).decode()
-            self.Header.SongAuthor = f.read( f.read(1) ).decode()
+            self.Header.SongName   = f.readu( f.readu(1) ).decode()
+            self.Header.SongAuthor = f.readu( f.readu(1) ).decode()
 
             # Highlights, useless
             f.seek(2, 1)
 
             # Initial tempo data
-            self.Module.TimeBase    = f.read(1)
-            self.Module.Tick1       = f.read(1)
-            self.Module.Tick2       = f.read(1)
-            self.Module.Framemode   = f.read(1)
-            self.Module.UseCustomHz = bool( f.read(1) )
-            self.Module.CustomHz    = f.read(1)*100 + f.read(1)*10 + f.read(1)
+            self.Module.TimeBase    = f.readu(1)
+            self.Module.Tick1       = f.readu(1)
+            self.Module.Tick2       = f.readu(1)
+            self.Module.Framemode   = f.readu(1)
+            self.Module.UseCustomHz = f.read_bool()
+            self.Module.CustomHz    = f.readu(1)*100 + f.readu(1)*10 + f.readu(1)
 
             # Pattern structure data
-            self.Module.TOTAL_ROWS_PER_PATTERN = struct.unpack('l', f.read(4))[0]
-            self.Module.TOTAL_ROWS_PATTERN_MATRIX = f.read(1)
+            self.Module.TOTAL_ROWS_PER_PATTERN = f.readu(4)
+            self.Module.TOTAL_ROWS_PATTERN_MATRIX = f.readu(1)
 
             # Read pattern matrix data
                 # for _ in range(self.Module.SYSTEM_TOTAL_CHANNELS):
@@ -144,7 +159,7 @@ class Dmf:
 
             # Pattern matrix data
             self.Module.PatternMatrix = [
-                    [i for i in f.read(self.Module.TOTAL_ROWS_PATTERN_MATRIX)]
+                    [i for i in f.readu(self.Module.TOTAL_ROWS_PATTERN_MATRIX)]
                 for _ in range(self.Module.SYSTEM_TOTAL_CHANNELS)
             ]
 
@@ -152,10 +167,10 @@ class Dmf:
             #for _ in range( f.read(1) ):
 
             # Pattern data
-            for channelId in range (13):    # TODO: Hardcoded amount of channels (YM2151+SPCM mode only)
+            for channelId in range(13):    # TODO: Hardcoded amount of channels (YM2151+SPCM mode only)
                 
                 channel = _Channel()
-                channel.CHANNEL_EFFECT_COLLUMN_COUNT = f.read(1)
+                channel.CHANNEL_EFFECT_COLLUMN_COUNT = f.readu(1)
                 channel.PatternOrder = [pttrn for pttrn in self.Module.PatternMatrix[channelId]]
 
                 for i in self.Module.TOTAL_ROWS_PATTERN_MATRIX:
@@ -170,21 +185,21 @@ class Dmf:
 
                         for _ in range(self.Module.TOTAL_ROWS_PER_PATTERN):
                             row = _Row()
-                            row.Note = struct.unpack('h', f.read(2))[0]
+                            row.Note = f.readu(2)
                             
-                            row.Octave = struct.unpack('h', f.read(2))[0]
+                            row.Octave = f.readu(2)
                             if row.Note == 0x0C:    # New octave at 'C'
                                 row.Octave += 1
 
-                            row.Volume = struct.unpack('h', f.read(2))[0]
+                            row.Volume = f.readu(2)
 
                             for _ in range(channel.CHANNEL_EFFECT_COLLUMN_COUNT):
                                 fx = _Fx()
-                                fx.Code  = struct.unpack('h', f.read(2))[0]
-                                fx.Value = struct.unpack('h', f.read(2))[0]
+                                fx.Code  = f.readu(2)
+                                fx.Value = f.readu(2)
                                 row.Fx.append(fx)
 
-                            row.Instr = struct.unpack('h', f.read(2))[0]
+                            row.Instr = f.readu(2)
 
                             pattern.Rows.append(row)
 
