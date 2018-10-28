@@ -96,6 +96,40 @@ class _Fx:
 
 
 
+class _Ins:
+    def __init__(self):
+        self.Name = None
+        self.Mode = None
+        self.Data = None
+
+class _Data_FM:
+    def __init__(self):
+        self.Alg = None
+        self.Fb = None
+        self.Lfo1 = None
+        self.Lfo2 = None
+        self.Op = [_Data_FM_Op() for _ in range(4)]
+
+class _Data_FM_Op:
+    def __init__(self):
+        self.Am_On = None
+        self.Ar = None
+        self.Dr = None
+        self.Mult = None
+        self.Rr = None
+        self.Sl = None
+        self.Tl = None
+        self.Dt2 = None
+        self.Ks = None
+        self.Dt = None
+        self.Sr = None  # D2R
+        self.Sseg = None
+
+DFM_OP_ATTR_LIST = [
+    'Am_On', 'Ar', 'Dr', 'Mult', 'Rr', 'Sl',
+    'Tl', 'Dt2', 'Ks', 'Dt', 'Sr', 'Sseg'
+    ]
+
 
 
 
@@ -104,6 +138,7 @@ class Dmf:
     """
     DefleMask .dmf file object.
     """
+    global DFM_OP_ATTR_LIST
 
     def __init__(self):
         # Init props
@@ -133,8 +168,8 @@ class Dmf:
             f.seek(19)
 
             # Header data
-            self.Header.SongName   = f.readu( f.readu(1) ).decode()
-            self.Header.SongAuthor = f.readu( f.readu(1) ).decode()
+            self.Header.SongName   = f.read( f.readu(1) ).decode()
+            self.Header.SongAuthor = f.read( f.readu(1) ).decode()
 
             # Highlights, useless
             f.seek(2, 1)
@@ -151,12 +186,6 @@ class Dmf:
             self.Module.TOTAL_ROWS_PER_PATTERN = f.readu(4)
             self.Module.TOTAL_ROWS_PATTERN_MATRIX = f.readu(1)
 
-            # Read pattern matrix data
-                # for _ in range(self.Module.SYSTEM_TOTAL_CHANNELS):
-                #     self.Module.PatternMatrix.append(
-                #         [i for i in f.read(self.Module.TOTAL_ROWS_PATTERN_MATRIX)]
-                #     )
-
             # Pattern matrix data
             self.Module.PatternMatrix = [
                     [i for i in f.readu(self.Module.TOTAL_ROWS_PATTERN_MATRIX)]
@@ -164,7 +193,28 @@ class Dmf:
             ]
 
             # Instrument data
-            #for _ in range( f.read(1) ):
+            for _ in range( f.readu(1) ):
+                ins = _Ins()
+
+                ins.Name = f.read( f.readu(1) ).decode()
+                ins.Mode = f.readu(1)
+
+                # If FM instrument
+                if (ins.Mode == 1):
+                    dfm = _Data_FM()
+
+                    dfm.Alg = f.readu(1)
+                    dfm.Fb = f.readu(1)
+                    dfm.Lfo1 = f.readu(1)
+                    dfm.Lfo2 = f.readu(1)
+
+                    for i in range(4):
+                        for j in range(12):
+                            setattr(dfm.Op[i], DFM_OP_ATTR_LIST[j], f.readu(1))
+
+                    ins.Data = dfm
+
+                self.Instruments.append(ins)
 
             # Pattern data
             for channelId in range(13):    # TODO: Hardcoded amount of channels (YM2151+SPCM mode only)
