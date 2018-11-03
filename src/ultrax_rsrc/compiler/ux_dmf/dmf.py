@@ -1,12 +1,50 @@
-#from .header import Header
-#from .moduleinfo import ModuleInfo
 
 import io
+import os
 import struct
 import zlib 
 
 from enum import Enum
 
+
+
+#************************************************
+#
+#   Utility classes
+#
+#************************************************
+
+class _Custom_BytesIO(io.BytesIO):
+    def __init__(self, args, *kwargs):
+        io.BytesIO.__init__(self, args, kwargs)
+
+    def read_bool(self):
+        """Read 1 byte as bool"""
+        return struct.unpack('?', self.read(1))[0]
+
+    def readu(self, size=None, mode=None):
+        """Read and unpack"""
+        if mode == None:
+            a = {1:'b', 2:'h', 4:'l',}[size]
+        return struct.unpack(a, self.read(size))[0]
+
+
+
+#************************************************
+#
+#   Header data classes
+#
+#************************************************
+
+# Header data for in Dmf.Header
+class _Header:
+    def __init__(self):
+        self.Version    = None
+        self.System     = None
+        self.SongName   = None
+        self.SongAuthor = None
+
+# Enum for available systems for in Header.System
 class SYSTEM(Enum):
     GENESIS         = 0x02
     GENESIS_EXT_CH3 = 0x12
@@ -20,30 +58,11 @@ class SYSTEM(Enum):
 
 
 
-
-class Custom_BytesIO(io.BytesIO):
-    def __init__(self, args, *kwargs):
-        io.BytesIO.__init__(self, args, kwargs)
-
-    def read_bool(self):
-        return struct.unpack('?', self.read(1))[0]
-
-    def readu(self, size=None, mode=None):
-        if mode == None:
-            a = {1:'b', 2:'h', 4:'l',}[size]
-        return struct.unpack(a, self.read(size))[0]
-
-
-
-
-
-# Header data for in Dmf.Header
-class _Header:
-    def __init__(self):
-        self.Version    = None
-        self.System     = None
-        self.SongName   = None
-        self.SongAuthor = None
+#************************************************
+#
+#   Module data classes
+#
+#************************************************
 
 # Module data for in Dmf.Module
 class _Module:
@@ -60,7 +79,6 @@ class _Module:
         self.TOTAL_ROWS_PATTERN_MATRIX = None
         self.TOTAL_INSTRUMENTS         = None
         self.SYSTEM_TOTAL_CHANNELS     = None
-
 
         self.PatternMatrix = []
         self.Channels      = []
@@ -96,12 +114,20 @@ class _Fx:
 
 
 
+#************************************************
+#
+#   Instrument data classes
+#
+#************************************************
+
+# Base instrument class
 class _Ins:
     def __init__(self):
         self.Name = None
         self.Mode = None
         self.Data = None
 
+# FM instrument data class for in Ins.Data
 class _Data_FM:
     def __init__(self):
         self.Alg  = None
@@ -110,11 +136,12 @@ class _Data_FM:
         self.Lfo2 = None
         self.Op   = [_Data_FM_Op() for _ in range(4)]
 
+# FM operator data class for in InsData_FM.Op[]
 class _Data_FM_Op:
     def __init__(self):
-        self.Am   = None
+        self.Am   = None # Amp mod
         self.Ar   = None
-        self.Dr   = None
+        self.Dr   = None # D1R
         self.Mult = None
         self.Rr   = None
         self.Sl   = None
@@ -125,23 +152,28 @@ class _Data_FM_Op:
         self.Sr   = None  # D2R
         self.Sseg = None
 
-DFM_OP_ATTR_LIST = [
+# Lookup table for the parameters to read and store in order
+_DFM_OP_ATTR_LIST = [
     'Am', 'Ar', 'Dr', 'Mult', 'Rr', 'Sl',
     'Tl', 'Dt2', 'Ks', 'Dt', 'Sr', 'Sseg'
     ]
 
 
 
+#************************************************
+#
+#   .dmf module class
+#
+#************************************************
 
 # Main class to read DefleMask .dmf file data from
 class Dmf:
     """
     DefleMask .dmf file object.
     """
-    global DFM_OP_ATTR_LIST
+    global _DFM_OP_ATTR_LIST
 
     def __init__(self):
-        # Init props
         self.Header = _Header()
         self.Module = _Module()
         self.Instruments = []
@@ -161,9 +193,13 @@ class Dmf:
             TypeError: when Load() opens a file which is not a valid .dmf file.
         """
 
-        #self.CheckModule(path)
+        if not os.path.exists(path):
+            raise FileNotFoundError('File at path {} could not be found or opened.'.format(path))
 
-        with Custom_BytesIO(zlib.decompress(open(path, 'rb').read()) ) as f:
+        #if not self.IsValidModule(path):
+        #    raise TypeError('File at path {} is not a supported version.'.format(path))
+
+        with _Custom_BytesIO(zlib.decompress(open(path, 'rb').read()) ) as f:
             #f = io.BytesIO()
             f.seek(19)
 
@@ -201,18 +237,17 @@ class Dmf:
 
                 # If FM instrument
                 if (ins.Mode == 1):
-                    dfm = _Data_FM()
+                    ins.Data = _Data_FM()
 
-                    dfm.Alg  = f.readu(1)
-                    dfm.Fb   = f.readu(1)
-                    dfm.Lfo1 = f.readu(1)
-                    dfm.Lfo2 = f.readu(1)
+                    ins.Data.Alg  = f.readu(1)
+                    ins.Data.Fb   = f.readu(1)
+                    ins.Data.Lfo1 = f.readu(1)
+                    ins.Data.Lfo2 = f.readu(1)
 
                     for i in range(4):
                         for j in range(12):
-                            setattr(dfm.Op[i], DFM_OP_ATTR_LIST[j], f.readu(1))
+                            setattr(ins.Data.Op[i], _DFM_OP_ATTR_LIST[j], f.readu(1))
 
-                    ins.Data = dfm
                 self.Instruments.append(ins)
 
             # Pattern data
@@ -255,7 +290,7 @@ class Dmf:
 
                     else:
                         skip_amount = (8 + (4 * channel.CHANNEL_EFFECT_COLLUMN_COUNT)) * self.Module.TOTAL_ROWS_PER_PATTERN
-                        f.seek(skip_amount, 1)  # Skip amount of bytes
+                        f.seek(skip_amount, 1) # Skip amount of bytes
                 
                 self.Module.Channels.append(channel)
 
@@ -277,20 +312,3 @@ class Dmf:
     #             FileNotFoundError("File not using correct mode")
 
     #     return
-        
-
-
-
-
-# PSEUDO CODE FOR DETUNE CALCULATION
-# command == E5xx
-# if xx > 80:
-#   command_value = xx - 80
-#   if command_value > 63:
-#       command_value = 63
-#
-# if xx < 80:
-#   command_value = 64 - (80 - xx)
-#   if command_value > 0:
-#       command_value = 0
-#   note -= 1

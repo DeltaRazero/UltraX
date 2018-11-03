@@ -22,7 +22,7 @@ class Mml:
         open
 
         with open(self.Filepath, 'r') as f:
-
+            pass
 
 
     def Compile(self, FData: io.TextIOBase, Arguments):
