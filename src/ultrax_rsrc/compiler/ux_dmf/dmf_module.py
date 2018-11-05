@@ -1,10 +1,10 @@
 
-import io
-import os
-import struct
-import zlib 
+import io     as _io
+import os     as _os
+import struct as _struct
+import zlib   as _zlib
 
-from enum import Enum
+from enum import Enum as _Enum
 
 
 
@@ -14,19 +14,19 @@ from enum import Enum
 #
 #************************************************
 
-class _Custom_BytesIO(io.BytesIO):
+class _Custom_BytesIO(_io.BytesIO):
     def __init__(self, args, *kwargs):
-        io.BytesIO.__init__(self, args, kwargs)
+        _io.BytesIO.__init__(self, args, kwargs)
 
     def read_bool(self):
         """Read 1 byte as bool"""
-        return struct.unpack('?', self.read(1))[0]
+        return _struct.unpack('?', self.read(1))[0]
 
     def readu(self, size=None, mode=None):
         """Read and unpack"""
         if mode == None:
             a = {1:'b', 2:'h', 4:'l',}[size]
-        return struct.unpack(a, self.read(size))[0]
+        return _struct.unpack(a, self.read(size))[0]
 
 
 
@@ -45,7 +45,7 @@ class _Header:
         self.SongAuthor = None
 
 # Enum for available systems for in Header.System
-class SYSTEM(Enum):
+class SYSTEM(_Enum):
     GENESIS         = 0x02
     GENESIS_EXT_CH3 = 0x12
     SMS             = 0x03
@@ -87,8 +87,8 @@ class _Module:
 class _Channel:
     def __init__(self):
         self.CHANNEL_EFFECT_COLLUMN_COUNT = None
-        self.Patterns     = {}
-        self.PatternOrder = []
+        self.Patterns = {}
+        self.Sequence = []
 
 # Pattern data class for in Channel.Patterns{}
 class _Pattern:
@@ -162,6 +162,24 @@ _DFM_OP_ATTR_LIST = [
 
 #************************************************
 #
+#   Sample data classes
+#
+#************************************************
+
+class _Sample:
+    def __init__(self):
+        self.SAMPLE_SIZE = None
+        self.Name  = None
+        self.Rate  = None
+        self.Pitch = None
+        self.Amp   = None
+        self.Bits  = None
+        self.Data  = None
+
+
+
+#************************************************
+#
 #   .dmf module class
 #
 #************************************************
@@ -171,12 +189,12 @@ class Dmf:
     """
     DefleMask .dmf file object.
     """
-    global _DFM_OP_ATTR_LIST
 
     def __init__(self):
         self.Header = _Header()
         self.Module = _Module()
         self.Instruments = []
+        self.Samples = []
 
     def Load(self, path: str) -> None:
         """
@@ -192,14 +210,15 @@ class Dmf:
             FileNotFoundError: when Load() cannot find the file with specified path.
             TypeError: when Load() opens a file which is not a valid .dmf file.
         """
+        #global _DFM_OP_ATTR_LIST
 
-        if not os.path.exists(path):
+        if not _os.path.exists(path):
             raise FileNotFoundError('File at path {} could not be found or opened.'.format(path))
 
         #if not self.IsValidModule(path):
         #    raise TypeError('File at path {} is not a supported version.'.format(path))
 
-        with _Custom_BytesIO(zlib.decompress(open(path, 'rb').read()) ) as f:
+        with _Custom_BytesIO(_zlib.decompress(open(path, 'rb').read()) ) as f:
             #f = io.BytesIO()
             f.seek(19)
 
@@ -255,11 +274,11 @@ class Dmf:
                 
                 channel = _Channel()
                 channel.CHANNEL_EFFECT_COLLUMN_COUNT = f.readu(1)
-                channel.PatternOrder = [pttrn for pttrn in self.Module.PatternMatrix[channelId]]
+                channel.Sequence = [pttrn for pttrn in self.Module.PatternMatrix[channelId]]
 
                 for i in self.Module.TOTAL_ROWS_PATTERN_MATRIX:
 
-                    patternId = channel.PatternOrder[i]
+                    patternId = channel.Sequence[i]
 
                     # If the pattern has not been parsed already
                     if not (patternId in channel.Patterns):
@@ -294,10 +313,25 @@ class Dmf:
                 
                 self.Module.Channels.append(channel)
 
+                TOTAL_SAMPLES = f.readu(1)
+                for _ in range(TOTAL_SAMPLES):
+
+                    sample = _Sample()
+                    sample.SAMPLE_SIZE = f.readu(4)
+
+                    sample.Name  = f.read( f.readu(1) ).decode()
+                    sample.Rate  = f.readu(1)
+                    sample.Pitch = f.readu(1)
+                    sample.Amp   = f.readu(1)
+                    sample.Bits  = f.readu(1)
+
+                    sample.Data  = bytearray([f.readu(2) for _ in range(sample.SAMPLE_SIZE)])
+
+                    self.Samples.append(sample)
+
         return
 
 
-    
 
     # def CheckModule(self, path):
     #     with io.BytesIO(open(path, 'rb').read(18)) as f:
