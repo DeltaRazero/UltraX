@@ -3,22 +3,20 @@ from .._misc.exc import *
 
 
 
-class Command:
+class Command_Interface:
     """
     MDX performance commands.
     """
 
-    #===========================================#
-    #   Internal props
-    #===========================================#
+    #**********************************************************
+    #
+    #    Internal stuff
+    #
+    #**********************************************************
     #region
     def __init__(self, Datalist):
 
         self._a = Datalist.append    # Set reference to _datatrack->_Data instance
-        self._e = Datalist.extend
-        self._i = Datalist.insert   # ???
-
-        self._datalist = Datalist
 
         self.Ext16      = _Command_Ext16(self)
         """MDX performance commands (+16 extension)."""
@@ -33,9 +31,11 @@ class Command:
     #endregion
 
 
-    #===========================================#
-    #   Interface for commands
-    #===========================================#
+    #**********************************************************
+    #
+    #    Public interface for commands
+    #
+    #**********************************************************
     #region
     def Rest(self, Clocks):
         """
@@ -185,37 +185,13 @@ class Command:
 
 
 # :: Repeat commands ::
-    def Repeat_Start(self):
-        self._a(_cmd.Repeat_Start())
+    def Repeat_Start(self, Repeats=0):
+        self._a(_cmd.Repeat_Start(Repeats))
         return
 
 
-    def Repeat_End(self, Data):
-
-        # First we add a repeat end command at the end of the trackdata. The loopback point to insert in this
-        # command is the last one added in the 'repeat start' counter ('_rsc'), as if it were to be a 
-        # stack / LIFO buffer.
-        # Then we insert a repeat start command at the index position of the counter we just used.
-        # After that we can safely remove the counter value from the list buffer / free up memory, as we have
-        # no more further use for it anymore.
-
-        # 最初に、トラックデータの最後にrepeat endコマンドを追加します。挿入するループバックポイントの値は、
-        # スタック / LIFOバッファであるかのように、 'repeat start'カウンタ（'_rsc'）に最後に追加されたものです。
-        # 次に、直前に使用したカウンタのインデックス位置にrepeat startコマンドを挿入します。
-        # カウンタバッファの最後の値を使用する必要はもうありません。 したがって、リストバッファ / 空きメモリからカウンタ値を安全に削除できます。
-        
+    def Repeat_End(self, Data=0, Repeats=0):
         self._a(_cmd.Repeat_End(Data))
-
-        # If the repeat escape byte counter ('_rec') has a value (i.e. is counting), insert a repeat escape command
-        # at the index position from the counter at the last position in the buffer (the same way how we insert repeat
-        # start commands).
-        # After that we can safely remove the counter value from the list buffer / free up memory, as we have no more
-        # further use for it anymore.
-
-        # repeat escapeバイトカウンタ（ '_rec'）に値がある場合（意味：カウント中）、インデックス位置に 'repeat_escape'コマンドが挿入されます。
-        # インデックス位置は、カウンタバッファの最後の位置の値です（リピート開始コマンドの挿入方法と同じです）。
-        # カウンタバッファの最後の値を使用する必要はもうありません。 したがって、リストバッファ/空きメモリからカウンタ値を安全に削除できます。
-
         return
 
 
@@ -275,10 +251,14 @@ class Command:
 #endregion
 
 
-#===============================================#
-#   Interface for commands
-#   (+16 extension class)
-#===============================================#
+
+
+#**********************************************************
+#
+#    Interface for commands
+#    (+16 extension class)
+#
+#**********************************************************
 #region
 class _Command_Ext16:
     def __init__(self, ObjRef):
@@ -291,10 +271,13 @@ class _Command_Ext16:
 #endregion
 
 
-#===============================================#
-#   Interface for commands
-#   (+16/02EX extension class)
-#===============================================#
+
+#**********************************************************
+#
+#    Interface for commands
+#    (+16/02EX extension class)
+#
+#**********************************************************
 #region
 class _Command_Ext16_02EX:
     def __init__(self, ObjRef):
@@ -317,15 +300,20 @@ class _Command_Ext16_02EX:
 #endregion
 
 
-#===========================================#
-#   Interface for commands
-#   (+17 extension class)
-#===========================================#
+
+
+#**********************************************************
+#
+#    Interface for commands
+#    (+17 extension class)
+#
+#**********************************************************
 # ※Not widely supported / ※広くサポートされていない
 #region
 class _Command_Ext17:
     def __init__(self, ObjRef):
         self._a = ObjRef._a
+
 
     def Pcm8_Control(self, d0, d1):
         self._a(_cmd.Ext_17_Pcm8_Control(d0, d1))
@@ -349,16 +337,7 @@ class _Command_Ext17:
 
 
     def AddLenght(self, Clocks):
-        cmdCount = 3
-
-        while (Clocks > 256):
-            self._a(_cmd.Ext_17_AddLenght(256))
-            Clocks -= 256
-            cmdCount += 3
-
-        self._updateCounters(cmdCount)
         self._a(_cmd.Ext_17_AddLenght(Clocks))
-
         return
 
 
@@ -367,16 +346,7 @@ class _Command_Ext17:
         Note command (+17 cmds) | 音符 コマンド\n
         Valid note range: 0x80 (o0d+) -- 0xDF (o8d)
         """
-        self._updateCounters(2)
-
-        if (Clocks > 256):
-            self._a(_cmd.Note(Data, 256))
-            Clocks -= 256
-            # The rest of command adding/counting is done in Ext_17_AddLenght
-            self._a(_cmd.Ext_17_AddLenght(Clocks))
-        else:
-            self._a(_cmd.Note(Data, Clocks))
-
+        self._a(_cmd.Ext_17_Note(Data, Clocks))
         return
 
 

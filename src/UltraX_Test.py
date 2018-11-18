@@ -18,17 +18,33 @@ b = a.DataTracks[0]
 
 b.Add.Tone(0)
 
-b.Add.Tempo_Bpm(150)
+b.Add.Tempo_Bpm(180)
 
-# b.Add.Repeat_Start()
+#b.Add.LoopMark()
 
+b.Add.Repeat_Start()
+#
 b.Add.Note(0xB0, 96)
 b.Add.Note(0xBA, 96)
-b.Add.LoopMark()
+
+
+
+b.Add.Repeat_Escape()
+
+
 b.Add.Note(0xC0, 96)
 b.Add.Note(0xCA, 96)
 b.Add.Note(0xD0, 96)
-# b.Add.Repeat_End(5)
+b.Add.Note(0xC1, 96)
+b.Add.Note(0xCB, 96)
+b.Add.Note(0xD1, 96)
+
+
+b.Add.Repeat_End(3)
+
+b.Add.Note(0xC8, 44)
+b.Add.Note(0xC8, 44)
+b.Add.Note(0xC8, 44)
 
 
 
