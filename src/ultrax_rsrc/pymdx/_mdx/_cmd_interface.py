@@ -1,6 +1,5 @@
-from . import _commands as _cmd
+from . import _cmd
 from .._misc.exc import *
-
 
 
 class Command_Interface:
@@ -166,8 +165,13 @@ class Command_Interface:
         return
 
 
-    def AdpcmFreq(self, Data):
-        self._a(_cmd.AdpcmFreq(Data))
+    def Noise_Control(self, Data, NoiseEnabled=None):
+        self._a(_cmd.Noise_Control(Data, NoiseEnabled))
+        return
+
+
+    def Adpcm_Control(self, Data):
+        self._a(_cmd.Adpcm_Control(Data))
         return
 
     

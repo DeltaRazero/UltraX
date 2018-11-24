@@ -1,6 +1,6 @@
-import struct as struct
-from .._misc._encoding import *
+import struct
 from .._misc.exc import *
+from .._misc._encoding import *
 
 
 #**********************************************************
@@ -9,17 +9,14 @@ from .._misc.exc import *
 #
 #**********************************************************
 
-_OPM_CLOCK = 4000000 # Hz
+OPM_CLOCK = 4000000 # Hz
 
 _CMD_EXT       = 0xE7
 _CMD_EXT_02EX  = 0xE6
-# TODO: Make these globals in classes
-
 
 # Abstract base command class to inherit. If working with
 # C++, C#, etc. you can use the 'abstract' class prefix.
-# Export always needs to be implemented by the programmer.
-
+# Export() will always need a custom implementation.
 class Command:
     AmountBytes = None
 
@@ -30,7 +27,7 @@ class Command:
     def Export(self, Command_Parameter):
         raise NotImplementedError
 
-
+_clamp = lambda value, minv, maxv: max(min(value, maxv), minv)
 
 
 #**********************************************************
@@ -40,8 +37,9 @@ class Command:
 #**********************************************************
 #region
 
-# 休符データ
+
 class Rest(Command):
+# 休符データ
     def __init__(self, Clocks: int) -> bytearray:
         self.Clocks = Clocks
 
@@ -66,8 +64,8 @@ class Rest(Command):
             return bytearray(self.Clocks-1)
 
 
-# 音符データ
 class Note(Command):
+# 音符データ
     def __init__(self, Data, Clocks):
         if not(0x80 <= Data <= 0xDF):
             raise ValueError("Data out of range")
@@ -100,27 +98,33 @@ class Note(Command):
             return bytearray([self.Data, self.Clocks-1])
 
 
-
-# opm_tempo = 256 - 60 * opm_clock / (bpm_tempo * 48 * 1024)          opm_tempo = 256 - (78125 / (16 * bpm_tempo))
-# bpm_tempo = 60 * opm_clock / (48 * 1024 * (256 - opm_tempo))        bpm_tempo = 78125 / (16 * (256 - opm_tempo))
-class Tempo_Bpm(Command):    # テンポ設定
-    def __init__(self, Data):   # TODO: Calculate BPM to data
+class Tempo_Bpm(Command):
+# テンポ設定
+    AmountBytes = 2
+    
+    def __init__(self, Data):
         self.Data = Data
 
-    AmountBytes = 2
     def Export(self):
-        global _OPM_CLOCK
+        global OPM_CLOCK
 
-        timerb = round(256 - 60 * _OPM_CLOCK / (self.Data * 48 * 1024))
-        if timerb < 0:
-            timerb = 0
-        elif timerb > 256:
-            timerb = 256
+        timerb = round(256 - 60 * OPM_CLOCK / (self.Data * 48 * 1024))
 
+        # opm_tempo = 256 - 60 * opm_clock / (bpm_tempo * 48 * 1024)
+        # bpm_tempo = 60 * opm_clock / (48 * 1024 * (256 - opm_tempo))        
+        #
+        # If opm_clock == 4mHz:
+        #   opm_tempo = 256 - (78125 / (16 * bpm_tempo))
+        #   bpm_tempo = 78125 / (16 * (256 - opm_tempo))
+        #
+        # Thanks to vampirefrog
+
+        timerb = _clamp(timerb, 0, 256)
         return bytearray([0xFF, timerb])
 
 
-class Tempo_TimerB(Command):    # テンポ設定
+class Tempo_TimerB(Command):
+# テンポ設定
     AmountBytes = 2
 
     def __init__(self, Data):
@@ -130,7 +134,8 @@ class Tempo_TimerB(Command):    # テンポ設定
         return bytearray([0xFF, self.Data])
 
 
-class OpmControl(Command):  # OPMレジスタ設定
+class OpmControl(Command):
+# OPMレジスタ設定
     AmountBytes = 3
 
     def __init__(self, Register, Data):
@@ -141,7 +146,8 @@ class OpmControl(Command):  # OPMレジスタ設定
         return bytearray([0xFE, self.Register, self.Data])
 
 
-class Tone(Command):     # 音色設定  //  also doubles as Expdx bank selector - Expdx銀行のセレクタとしても倍増
+class Tone(Command):
+# 音色設定  //  also doubles as Expdx bank selector - Expdx銀行のセレクタとしても倍増
     AmountBytes = 2
 
     def __init__(self, Data):
@@ -151,7 +157,8 @@ class Tone(Command):     # 音色設定  //  also doubles as Expdx bank selector
         return bytearray([0xFD, self.Data])
 
 
-class Pan(Command):      # 出力位相設定
+class Pan(Command):
+# 出力位相設定
     AmountBytes = 2
 
     def __init__(self, Data):
@@ -161,7 +168,8 @@ class Pan(Command):      # 出力位相設定
         return bytearray([0xFC, self.Data])
 
 
-class Volume(Command):   # 音量設定
+class Volume(Command):
+# 音量設定
     AmountBytes = 2
 
     def __init__(self, Data):
@@ -171,21 +179,24 @@ class Volume(Command):   # 音量設定
         return bytearray([0xFB, self.Data])
 
 
-class Volume_Increase(Command):   # 音量増大
+class Volume_Increase(Command):
+# 音量増大
     AmountBytes = 1
 
     def Export(self):
         return bytearray([0xFA])
 
 
-class Volume_Decrease(Command):   # 音量減小
+class Volume_Decrease(Command):
+# 音量減小
     AmountBytes = 1
 
     def Export(self):
         return bytearray([0xF9])
 
 
-class Gate(Command):     # ゲートタイム
+class Gate(Command):
+# ゲートタイム
     AmountBytes = 2
 
     def __init__(self, Data):
@@ -195,7 +206,9 @@ class Gate(Command):     # ゲートタイム
         return bytearray([0xF8, self.Data])
 
 
-class Legato(Command):   # Disable keyoff for next note / キーオフ無効
+class Legato(Command):
+# キーオフ無効
+# Disable keyoff for next note / 次のNOTE発音後キーオフしない
     AmountBytes = 1
 
     def Export(self):
@@ -203,6 +216,7 @@ class Legato(Command):   # Disable keyoff for next note / キーオフ無効
 
 
 class Repeat_Start(Command):
+# リピート開始
     AmountBytes = 3
 
     def __init__(self, Data=0):
@@ -222,6 +236,7 @@ class Repeat_Start(Command):
 
 
 class Repeat_End(Command):
+# リピート終端
     AmountBytes = 3
 
     def __init__(self, Data):
@@ -270,6 +285,7 @@ class Repeat_End(Command):
 
 
 class Repeat_Escape(Command):
+# リピート脱出
     AmountBytes = 3
 
     def __init__(self, Data=0):
@@ -290,6 +306,7 @@ class Repeat_Escape(Command):
 
 
 class Detune(Command):
+# デチューン
     AmountBytes = 3
 
     def __init__(self, Data):
@@ -302,6 +319,7 @@ class Detune(Command):
 
 
 class Portamento(Command):
+# ポルタメント
     AmountBytes = 3
 
     def __init__(self, Data):
@@ -314,6 +332,7 @@ class Portamento(Command):
 
 
 class DataEnd(Command):
+# データエンド
     def __init__(self, Data):
         self.Data = Data
 
@@ -337,6 +356,7 @@ class DataEnd(Command):
 
 
 class DelayKeyon(Command):
+# キーオンディレイ
     AmountBytes = 2
 
     def __init__(self, Data):
@@ -349,6 +369,7 @@ class DelayKeyon(Command):
 
 
 class Sync_Resume(Command):
+# 同期信号送出
     AmountBytes = 2
 
     def __init__(self, Data):
@@ -361,14 +382,72 @@ class Sync_Resume(Command):
 
 
 class Sync_Wait(Command):
+# 同期信号待機
     AmountBytes = 1
 
     def Export(self):
         return bytearray([0xEE])
 
 
+class Noise_Control(Command):
+# ノイズ周波数設定
+# [$ED] + [byte]
+#
+# FM #7:
+#   Bits 0-6 are noise frequency. Bit 7 is a noise mode ON/OFF switch
+#   ビット0-6はノイズ周波数。ビット7はノイズON/OFF
+    AmountBytes = 2
+    
+    # Functionally equal to "Static Bool"
+    _noiseEnabled = False;
+    @property
+    def _NoiseEnabled(self):
+        return type(self)._noiseEnabled;
+    @_NoiseEnabled.setter
+    def i(self,val):
+        type(self)._noiseEnabled = val;
 
-class AdpcmFreq(Command):
+    def __init__(self, Data, NoiseEnabled=None):
+        self.Data = Data
+        # Nullable Bool, alternatively use *args --> args[1]
+        self.NoiseEnabled = NoiseEnabled
+
+    def Export(self):
+        if (self.NoiseEnabled is None):
+            self._NoiseEnabled = {
+                0: False,
+                1: True,
+            }[self.Data & 0x80]
+        elif (type(self.NoiseEnabled) is bool):
+            self._NoiseEnabled = self.NoiseEnabled
+        else:
+            raise TypeError()
+
+        e = bytearray([0xED])
+        e.append(self.Data | self._NoiseEnabled<<7)
+        return e
+
+
+class Adpcm_Control(Command):
+# ADPCM ズ周波数設定
+# 
+# [$ED] + [byte]
+#
+# ADPCM:
+#   0:  3.9 kHz
+#   1:  5.2 kHz
+#   2:  7.8 kHz
+#   3: 10.4 kHz
+#   4: 15.6 kHz
+#
+# PCM8:
+#   5: 16 bit pcm / 15.6 KHz
+#   6:  8 bit pcm / 15.6 KHz
+#
+# PCM8++:
+#   Values 7 ~ 31 can also be set.
+#   7 ～ 31 の値も設定出来ます。
+#
     AmountBytes = 2
 
     def __init__(self, Data):
@@ -381,6 +460,8 @@ class AdpcmFreq(Command):
 
 
 class Expcm_Enable(Command):
+# Declare the use of EX-PCM mode (PCM4, PCM8, Rydeen, etc.)
+# EX-PCM使用宣言 (PCM4, PCM8, Rydeen, 等)
     AmountBytes = 1
     
     def Export(self):
@@ -388,6 +469,7 @@ class Expcm_Enable(Command):
 
 
 class LoopMark(Command):
+# ループポインタ位置
     def Count(self, CounterObj):
         CounterObj.UpdateCounters(0)
         CounterObj.Lmc = 1
@@ -397,8 +479,9 @@ class LoopMark(Command):
         return bytearray()
 
 
-# :: LFO commands // Pitch ::
+# :: Pitch LFO // 音程LFO ::
 class Lfo_Pitch_Enable(Command):
+# 音程LFO ON
     AmountBytes = 2
 
     def Export(self):
@@ -406,6 +489,7 @@ class Lfo_Pitch_Enable(Command):
 
 
 class Lfo_Pitch_Disable(Command):
+# 音程LFO OFF
     AmountBytes = 2
 
     def Export(self):
@@ -413,6 +497,7 @@ class Lfo_Pitch_Disable(Command):
 
 
 class Lfo_Pitch_Control(Command):
+# 音程LFO 制御
     AmountBytes = 6
 
     def __init__(self, Wave, Freq, Amp):
@@ -427,8 +512,9 @@ class Lfo_Pitch_Control(Command):
         return e
 
 
-# :: LFO commands // Volume ::
+# :: Volume LFO // 音量LFO ::
 class Lfo_Volume_Enable(Command):
+# 音量LFO ON
     AmountBytes = 2
 
     def Export(self):
@@ -436,6 +522,7 @@ class Lfo_Volume_Enable(Command):
 
 
 class Lfo_Volume_Disable(Command):
+# 音量LFO OFF
     AmountBytes = 2
 
     def Export(self):
@@ -443,6 +530,7 @@ class Lfo_Volume_Disable(Command):
 
 
 class Lfo_Volume_Control(Command):
+# 音量LFO制御
     AmountBytes = 6
 
     def __init__(self, Wave, Freq, Amp):
@@ -457,20 +545,23 @@ class Lfo_Volume_Control(Command):
         return e
 
 
-# :: LFO commands // Opm ::
+# :: OPM LFO // OPMLFO ::
 class Lfo_Opm_Enable(Command):
+# OPMLFO ON
     AmountBytes = 2
 
     def Export(self):
         return bytearray([0xEA, 0x81])
 
 class Lfo_Opm_Disable(Command):
+# OPMLFO OFF
     AmountBytes = 2
 
     def Export(self):
         return bytearray([0xEA, 0x80])
 
 class Lfo_Opm_Control(Command):
+# OPMLFO制御
     AmountBytes = 7
 
     def __init__(self, RestartWave, Wave, Speed, Pmd, Amd, Pms_Ams):
@@ -491,10 +582,12 @@ class Lfo_Opm_Control(Command):
 #**********************************************************
 #
 #    Extended Commands (+16)
+#    拡張コマンド (+16での拡張)
 #
 #**********************************************************
 #region
 class Ext_16_Fadeout(Command):
+# 可変速でのフェードアウト
     global _CMD_EXT
     AmountBytes = 3
 
@@ -511,10 +604,12 @@ class Ext_16_Fadeout(Command):
 #**********************************************************
 #
 #    Extended Commands (+16/02EX)
+#    拡張コマンド (非公式コマンド）+16/02EXのみ)
 #
 #**********************************************************
 #region
 class Ext_16_02EX_RelativeDetune(Command):
+# 相対デチューン
     global _CMD_EXT_02EX
     AmountBytes = 4
 
@@ -528,6 +623,7 @@ class Ext_16_02EX_RelativeDetune(Command):
 
 
 class Ext_16_02EX_Transpose(Command):
+# 移調
     global _CMD_EXT_02EX
     AmountBytes = 3
 
@@ -539,6 +635,7 @@ class Ext_16_02EX_Transpose(Command):
 
 
 class Ext_16_02EX_RelativeTranspose(Command):
+# 相対移調
     global _CMD_EXT_02EX
     AmountBytes = 3
 
@@ -555,11 +652,14 @@ class Ext_16_02EX_RelativeTranspose(Command):
 #**********************************************************
 #
 #    Extended Commands (+17)
+#    拡張コマンド (+17での拡張)
 #
 #**********************************************************
 #region
 
 class Ext_17_Pcm8_Control(Command):
+# Send data to PCM8 directly
+# PCM8を直接ドライブする
     global _CMD_EXT
     AmountBytes = 8
 
@@ -575,6 +675,8 @@ class Ext_17_Pcm8_Control(Command):
 
 
 class Ext_17_UseKeyoff(Command):
+# Set the KEYOFF flag: $00 = KeyOff, $01 = Do not KeyOff
+# $00=KEYOFFする/$01=KEYOFFしない
     global _CMD_EXT
     AmountBytes = 3
 
@@ -585,7 +687,9 @@ class Ext_17_UseKeyoff(Command):
         return bytearray([_CMD_EXT, 0x03, self.Data])
 
 
-class Ext_17_Channel_Control(Command):
+class Ext_17_Channel_Control(Command):    # TODO: Currently buggy
+# Control another channel
+# 他のチャンネルをコントロール
     global _CMD_EXT
     AmountBytes = 3
 
@@ -597,7 +701,9 @@ class Ext_17_Channel_Control(Command):
         return bytearray([_CMD_EXT, 0x04, self.Data])
 
 
-class Ext_17_AddLenght(Command):
+class Ext_17_AddLenght(Command):    # TODO: research
+# Add note lenght
+# 音長加算する
     global _CMD_EXT
 
     def __init__(self, Clocks):
@@ -624,7 +730,9 @@ class Ext_17_AddLenght(Command):
             return bytearray([_CMD_EXT, 0x05, self.Clocks-1])
     
 
-class Ext_17_UseFlags(Command):
+class Ext_17_UseFlags(Command):    # TODO: what does this do?
+# Declare if flags are still used
+# まだフラグを使用してない？
     global _CMD_EXT
     AmountBytes = 3
 

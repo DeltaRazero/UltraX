@@ -1,4 +1,4 @@
-from ._commands_itf import Command_Interface
+from ._cmd_interface import Command_Interface
 from enum import Enum
 
 
