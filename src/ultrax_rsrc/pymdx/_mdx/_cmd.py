@@ -18,10 +18,10 @@ _CMD_EXT_02EX  = 0xE6
 # C++, C#, etc. you can use the 'abstract' class prefix.
 # Export() will always need a custom implementation.
 class Command:
-    AmountBytes = None
+    _amountBytes = None
 
     def Count(self, CounterObj):
-        CounterObj.UpdateCounters(self.AmountBytes)
+        CounterObj.UpdateCounters(self._amountBytes)
         return
 
     def Export(self, Command_Parameter):
@@ -44,8 +44,8 @@ class Rest(Command):
         self.Clocks = Clocks
 
     def Count(self, CounterObj):
-        self.AmountBytes = -(-self.Clocks // 128)
-        CounterObj.UpdateCounters(self.AmountBytes)
+        _amountBytes = -(-self.Clocks // 128)
+        CounterObj.UpdateCounters(_amountBytes)
         return
 
     def Export(self):
@@ -74,8 +74,8 @@ class Note(Command):
             self.Clocks = Clocks
 
     def Count(self, CounterObj):
-        self.AmountBytes = 2 + (-(-self.Clocks // 256)-1) * 3
-        CounterObj.UpdateCounters(self.AmountBytes)
+        _amountBytes = 2 + (-(-self.Clocks // 256)-1) * 3
+        CounterObj.UpdateCounters(_amountBytes)
         return
 
     def Export(self):
@@ -100,7 +100,7 @@ class Note(Command):
 
 class Tempo_Bpm(Command):
 # テンポ設定
-    AmountBytes = 2
+    _amountBytes = 2
     
     def __init__(self, Data):
         self.Data = Data
@@ -125,7 +125,7 @@ class Tempo_Bpm(Command):
 
 class Tempo_TimerB(Command):
 # テンポ設定
-    AmountBytes = 2
+    _amountBytes = 2
 
     def __init__(self, Data):
         self.Data = Data
@@ -136,7 +136,7 @@ class Tempo_TimerB(Command):
 
 class OpmControl(Command):
 # OPMレジスタ設定
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Register, Data):
         self.Register = Register
@@ -148,7 +148,7 @@ class OpmControl(Command):
 
 class Tone(Command):
 # 音色設定  //  also doubles as Expdx bank selector - Expdx銀行のセレクタとしても倍増
-    AmountBytes = 2
+    _amountBytes = 2
 
     def __init__(self, Data):
         self.Data = Data
@@ -159,7 +159,7 @@ class Tone(Command):
 
 class Pan(Command):
 # 出力位相設定
-    AmountBytes = 2
+    _amountBytes = 2
 
     def __init__(self, Data):
         self.Data = Data
@@ -170,7 +170,7 @@ class Pan(Command):
 
 class Volume(Command):
 # 音量設定
-    AmountBytes = 2
+    _amountBytes = 2
 
     def __init__(self, Data):
         self.Data = Data
@@ -181,7 +181,7 @@ class Volume(Command):
 
 class Volume_Increase(Command):
 # 音量増大
-    AmountBytes = 1
+    _amountBytes = 1
 
     def Export(self):
         return bytearray([0xFA])
@@ -189,7 +189,7 @@ class Volume_Increase(Command):
 
 class Volume_Decrease(Command):
 # 音量減小
-    AmountBytes = 1
+    _amountBytes = 1
 
     def Export(self):
         return bytearray([0xF9])
@@ -197,7 +197,7 @@ class Volume_Decrease(Command):
 
 class Gate(Command):
 # ゲートタイム
-    AmountBytes = 2
+    _amountBytes = 2
 
     def __init__(self, Data):
         self.Data = Data
@@ -209,7 +209,7 @@ class Gate(Command):
 class Legato(Command):
 # キーオフ無効
 # Disable keyoff for next note / 次のNOTE発音後キーオフしない
-    AmountBytes = 1
+    _amountBytes = 1
 
     def Export(self):
         return bytearray([0xF7])
@@ -217,13 +217,13 @@ class Legato(Command):
 
 class Repeat_Start(Command):
 # リピート開始
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data=0):
         self.Data = Data
 
     def Count(self, CounterObj):
-        CounterObj.UpdateCounters(self.AmountBytes)
+        CounterObj.UpdateCounters(self._amountBytes)
 
         CounterObj.Rsc.Add1()
         CounterObj.Rsc.GetLast().Position = CounterObj.Position
@@ -237,7 +237,7 @@ class Repeat_Start(Command):
 
 class Repeat_End(Command):
 # リピート終端
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data):
         self.Data = Data
@@ -268,7 +268,7 @@ class Repeat_End(Command):
 
         CounterObj.Rescc.Stop1()
 
-        CounterObj.UpdateCounters(self.AmountBytes)
+        CounterObj.UpdateCounters(self._amountBytes)
 
         CounterObj.Rsc.GetLast().Loop_Times = self.Data
         CounterObj.Rsc.Stop1()
@@ -286,13 +286,13 @@ class Repeat_End(Command):
 
 class Repeat_Escape(Command):
 # リピート脱出
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data=0):
         self.Data = Data
 
     def Count(self, CounterObj):
-        CounterObj.UpdateCounters(self.AmountBytes)
+        CounterObj.UpdateCounters(self._amountBytes)
 
         CounterObj.Rescc.Add1()
         CounterObj.Rescc.GetLast().Position = CounterObj.Position
@@ -307,7 +307,7 @@ class Repeat_Escape(Command):
 
 class Detune(Command):
 # デチューン
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data):
         self.Data = Data
@@ -320,7 +320,7 @@ class Detune(Command):
 
 class Portamento(Command):
 # ポルタメント
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data):
         self.Data = Data
@@ -338,10 +338,10 @@ class DataEnd(Command):
 
     def Count(self, CounterObj):
         if (self.Data < 1):
-            self.AmountBytes = 2
+            self._amountBytes = 2
         else:
-            self.AmountBytes = 3
-        CounterObj.UpdateCounters(self.AmountBytes)
+            self._amountBytes = 3
+        CounterObj.UpdateCounters(self._amountBytes)
         return
 
     def Export(self):
@@ -357,7 +357,7 @@ class DataEnd(Command):
 
 class DelayKeyon(Command):
 # キーオンディレイ
-    AmountBytes = 2
+    _amountBytes = 2
 
     def __init__(self, Data):
         self.Data = Data
@@ -370,7 +370,7 @@ class DelayKeyon(Command):
 
 class Sync_Resume(Command):
 # 同期信号送出
-    AmountBytes = 2
+    _amountBytes = 2
 
     def __init__(self, Data):
         self.Data = Data
@@ -383,7 +383,7 @@ class Sync_Resume(Command):
 
 class Sync_Wait(Command):
 # 同期信号待機
-    AmountBytes = 1
+    _amountBytes = 1
 
     def Export(self):
         return bytearray([0xEE])
@@ -396,7 +396,7 @@ class Noise_Control(Command):
 # FM #7:
 #   Bits 0-6 are noise frequency. Bit 7 is a noise mode ON/OFF switch
 #   ビット0-6はノイズ周波数。ビット7はノイズON/OFF
-    AmountBytes = 2
+    _amountBytes = 2
     
     # Functionally equal to "Static Bool"
     _noiseEnabled = False;
@@ -404,7 +404,7 @@ class Noise_Control(Command):
     def _NoiseEnabled(self):
         return type(self)._noiseEnabled;
     @_NoiseEnabled.setter
-    def i(self,val):
+    def _NoiseEnabled(self,val):
         type(self)._noiseEnabled = val;
 
     def __init__(self, Data, NoiseEnabled=None):
@@ -448,7 +448,7 @@ class Adpcm_Control(Command):
 #   Values 7 ~ 31 can also be set.
 #   7 ～ 31 の値も設定出来ます。
 #
-    AmountBytes = 2
+    _amountBytes = 2
 
     def __init__(self, Data):
         self.Data = Data
@@ -462,7 +462,7 @@ class Adpcm_Control(Command):
 class Expcm_Enable(Command):
 # Declare the use of EX-PCM mode (PCM4, PCM8, Rydeen, etc.)
 # EX-PCM使用宣言 (PCM4, PCM8, Rydeen, 等)
-    AmountBytes = 1
+    _amountBytes = 1
     
     def Export(self):
         return bytearray([0xE8])
@@ -482,7 +482,7 @@ class LoopMark(Command):
 # :: Pitch LFO // 音程LFO ::
 class Lfo_Pitch_Enable(Command):
 # 音程LFO ON
-    AmountBytes = 2
+    _amountBytes = 2
 
     def Export(self):
         return bytearray([0xEC, 0x81])
@@ -490,7 +490,7 @@ class Lfo_Pitch_Enable(Command):
 
 class Lfo_Pitch_Disable(Command):
 # 音程LFO OFF
-    AmountBytes = 2
+    _amountBytes = 2
 
     def Export(self):
         return bytearray([0xEC, 0x80])
@@ -498,7 +498,7 @@ class Lfo_Pitch_Disable(Command):
 
 class Lfo_Pitch_Control(Command):
 # 音程LFO 制御
-    AmountBytes = 6
+    _amountBytes = 6
 
     def __init__(self, Wave, Freq, Amp):
         self.Wave = Wave
@@ -515,7 +515,7 @@ class Lfo_Pitch_Control(Command):
 # :: Volume LFO // 音量LFO ::
 class Lfo_Volume_Enable(Command):
 # 音量LFO ON
-    AmountBytes = 2
+    _amountBytes = 2
 
     def Export(self):
         return bytearray([0xEB, 0x81])
@@ -523,7 +523,7 @@ class Lfo_Volume_Enable(Command):
 
 class Lfo_Volume_Disable(Command):
 # 音量LFO OFF
-    AmountBytes = 2
+    _amountBytes = 2
 
     def Export(self):
         return bytearray([0xEB, 0x80])
@@ -531,7 +531,7 @@ class Lfo_Volume_Disable(Command):
 
 class Lfo_Volume_Control(Command):
 # 音量LFO制御
-    AmountBytes = 6
+    _amountBytes = 6
 
     def __init__(self, Wave, Freq, Amp):
         self.Wave = Wave
@@ -548,21 +548,21 @@ class Lfo_Volume_Control(Command):
 # :: OPM LFO // OPMLFO ::
 class Lfo_Opm_Enable(Command):
 # OPMLFO ON
-    AmountBytes = 2
+    _amountBytes = 2
 
     def Export(self):
         return bytearray([0xEA, 0x81])
 
 class Lfo_Opm_Disable(Command):
 # OPMLFO OFF
-    AmountBytes = 2
+    _amountBytes = 2
 
     def Export(self):
         return bytearray([0xEA, 0x80])
 
 class Lfo_Opm_Control(Command):
 # OPMLFO制御
-    AmountBytes = 7
+    _amountBytes = 7
 
     def __init__(self, RestartWave, Wave, Speed, Pmd, Amd, Pms_Ams):
         self.RestartWave = RestartWave
@@ -589,7 +589,7 @@ class Lfo_Opm_Control(Command):
 class Ext_16_Fadeout(Command):
 # 可変速でのフェードアウト
     global _CMD_EXT
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data):
         self.Data = Data
@@ -611,7 +611,7 @@ class Ext_16_Fadeout(Command):
 class Ext_16_02EX_RelativeDetune(Command):
 # 相対デチューン
     global _CMD_EXT_02EX
-    AmountBytes = 4
+    _amountBytes = 4
 
     def __init__(self, Data):
         self.Data = Data
@@ -625,7 +625,7 @@ class Ext_16_02EX_RelativeDetune(Command):
 class Ext_16_02EX_Transpose(Command):
 # 移調
     global _CMD_EXT_02EX
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data):
         self.Data = Data
@@ -637,7 +637,7 @@ class Ext_16_02EX_Transpose(Command):
 class Ext_16_02EX_RelativeTranspose(Command):
 # 相対移調
     global _CMD_EXT_02EX
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data):
         self.Data = Data
@@ -661,7 +661,7 @@ class Ext_17_Pcm8_Control(Command):
 # Send data to PCM8 directly
 # PCM8を直接ドライブする
     global _CMD_EXT
-    AmountBytes = 8
+    _amountBytes = 8
 
     def __init__(self, d0, d1):
         self.d0 = d0
@@ -670,15 +670,15 @@ class Ext_17_Pcm8_Control(Command):
     def Export(self):
         e = bytearray([_CMD_EXT, 0x02])
         e.extend(struct.pack(ENC_WORD, self.d0))
-        e.extend(struct.pack(ENC_WORD, self.d1))
-        return 
+        e.extend(struct.pack(ENC_LONG, self.d1))
+        return e
 
 
 class Ext_17_UseKeyoff(Command):
 # Set the KEYOFF flag: $00 = KeyOff, $01 = Do not KeyOff
 # $00=KEYOFFする/$01=KEYOFFしない
     global _CMD_EXT
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data):
         self.Data = Data
@@ -691,7 +691,7 @@ class Ext_17_Channel_Control(Command):    # TODO: Currently buggy
 # Control another channel
 # 他のチャンネルをコントロール
     global _CMD_EXT
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data):
         self.Data = Data
@@ -710,8 +710,8 @@ class Ext_17_AddLenght(Command):    # TODO: research
         self.Clocks = Clocks
 
     def Count(self, CounterObj):
-        self.AmountBytes = -(-self.Clocks // 256) * 3
-        CounterObj.UpdateCounters(self.AmountBytes)
+        _amountBytes = -(-self.Clocks // 256) * 3
+        CounterObj.UpdateCounters(_amountBytes)
         return
 
     def Export(self):
@@ -734,7 +734,7 @@ class Ext_17_UseFlags(Command):    # TODO: what does this do?
 # Declare if flags are still used
 # まだフラグを使用してない？
     global _CMD_EXT
-    AmountBytes = 3
+    _amountBytes = 3
 
     def __init__(self, Data):
         self.Data = Data
