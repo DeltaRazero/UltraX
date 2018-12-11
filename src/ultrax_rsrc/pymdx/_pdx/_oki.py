@@ -1,7 +1,11 @@
+from .._misc import _util
+import struct
+
+
 
 # Encoding algorithm: Copyright (c) 2001 Tetsuya Isaki. All rights reserved.
 
-class Oki:
+class Oki_Encoder:
 
     _ADPCM_ESTIM_INDEX = [
          2,  6,  10,  14,  18,  22,  26,  30,
@@ -19,111 +23,194 @@ class Oki:
         -1, -1, -1, -1, 2, 4, 6, 8
     ]
 
+    _signal = 0
+    _estim  = 0
+
+
+    def Reset(self):
+        self._signal = 0
+        self._estim  = 0
+        return
+
+
     # Converts a single sample: signed linear 16 bit --> Oki ADPCM 4 bit
     # See bottom of this file for comments/notes on the algorithm
     def _EncodeSample(self, n):
-        df = n - self.amp # Delta of current sample - previous estimated sample
-        dl = self._ADPCM_ESTIM[self.estim]   
+        """
+        Encode a single sample from signed linear 16bit to 4bit OKI ADPCM
+
+        """
+
+
+        df = n - self._signal    # Delta of current sample - previous estimated sample
+        dl = self._ADPCM_ESTIM[self._estim]   
         c = ((df / 16) * 8) / dl    # Scale 16bit to 12bit
 
         b = int(c/2)
         if (df < 0):    # If delta negative
-            b = -b
+            b = -b	    # Reverse negative to positve
             s = 0x08    # Set negative bit (bit3)
-        else: s = 0x00
+        else: s = 0x00	# Set positive bit (bit3)
 
-        if (b > 0x07): b = 0x07     # Clip ADPCM sample (3 bits max) 
+        if (b > 0x07): b = 0x07    # Clip ADPCM sample (3 bits max) 
 
-        s |= b  # Combine
+        s |= b  # Combine sign bit and value
 
-        self.amp += self._ADPCM_ESTIM_INDEX[s] * dl
-        self.estim += self._ADPCM_ESTIM_STEP[b]
+        self._signal += self._ADPCM_ESTIM_INDEX[s] * dl
+        self._estim  += self._ADPCM_ESTIM_STEP[b]
 
-        # Clip value
-        if (self.estim < 0): self.estim = 0
-        elif (self.estim > 48): self.estim = 48
+        self._estim = _util.Clamp(self._estim, 0, 48)
 
         return s
 
 
-    def Encode(self, wavedata):
+    def Encode(self, Sample_Data, Sample_BitDepth):
         """Encode 8bit or 16bit linear PCM """
 
-        # read wave from a wave module
+        if not (Sample_BitDepth == 8 or Sample_BitDepth == 16):
+            raise Exception()
+        if (Sample_BitDepth == 8):
+            Sample_Data = _util.Convert_8to16(Sample_Data)
 
-        # if not 8bit or 16bit encoding: return
+        l_SampleData = len(Sample_Data)
+        b_Add = False
 
-        # if 8bit encoding:
-        # normalize routine
+        if (l_SampleData % 2):
+            l_SampleData += 1
+            b_Add = True
 
-        self.amp = 0; self.estim = 0    # Reset
-        e = bytearray()
-        for c, v in enumerate(wavedata):
-            if not ((c-1)%2):
-                temp = self._EncodeSample(v)
-            else:
-                e.append(temp<<4 | self._EncodeSample(v))   # Combine
+        l_e = l_SampleData / 2
+        e = bytearray([0]*l_e)
+        
+        # for (int s = 0; s < l_e-2; s+=2)
+        for s in range(0,l_e-2, 2):
+            e[s] = self._EncodeSample(Sample_Data[s]) | (self._EncodeSample(Sample_Data[s+1])<<4)
+
+        if (b_Add):
+            e[l_e - 1] = self._EncodeSample(Sample_Data[l_SampleData-2]) | self._EncodeSample(0)
+        else:
+            e[l_e - 1] = self._EncodeSample(Sample_Data[l_SampleData-2]) | (self._EncodeSample(Sample_Data[l_SampleData-1])<<4)
 
         return e
 
 
 
-# Encoding comments by Tetsuya Isaki
-# (Japanese loosely translated to English)
-# ------------------------------------------
-# mc_estim contains the index value of the previous difference ratio
-# prediction value.
 
-# df is the difference between the actual PCM value (Smp)
-# and the previous predicted PCM value.
+class Oki_Decoder:
+    """Class that can decode OKI ADPCM encoded audio streams.
+    """
 
-# dl is obtained by extracting the predicted difference ratio
-# from the difference ratio prediction value table adpcm_estim[].
+    _diff_lookup = None
+    @property
+    def DIFF_LOOKUP(self):  return type(self)._diff_lookup
+    @DIFF_LOOKUP.setter
+    def DIFF_LOOKUP(self, value): type(self)._diff_lookup = value
 
-# c converts the difference to 12 bits and gives the ratio to (dl / 8).
-#   --> /16 is the difference between 16 bits and 12 bits, that is, 2 ^ 4.
-#   --> *8 is due to the fact that the value of dl i.e. adpcm_estim[]
-#       is recorded with 8 times value.
+    STEP_INDEX_SHIFT = [-1, -1, -1, -1, 2, 4, 6, 8]
 
-# Processing changes depending on whether c is positive or negative.
-#   --> However, c may be 0 by division, and df is used for sign
-#       determination in order to avoid treating it as positive in that case.
-#   --> The ADPCM data to actually encode is a combination of sign bit and
-#       amplitude bit. The amplitude bit is obtained by dividing c by 2.
+    OUTPUT_BITS = 12
+    SIGNAL_GAIN = 4
 
-# Since the stored ADPCM amplitude is 3 bits, it is limited by 7.
+    _signal = -2
+    _step = 0
 
-# By doing s |= b, s is followed by a signed 4 bit.
-#   --> b can be used properly as an unsigned absolute value.
 
-# With the conversion so far after s|=b, the relationship between
-# the amplitude bit b and the actual ratio c becomes:
-#     b: ratio range c =
-#          0: 0 <= Ratio <2
-#          1: 2 <= Ratio <4
-#          2: 4 <= Ratio <6
-#          3: 6 <= Ratio <8
-#          4: 8 <= Ratio <10
-#          5: 10 <= Ratio <12
-#          6: 12 <= Ratio <14
-#          7: 14 <= Ratio
+    def __init__(self):
+        if (self.DIFF_LOOKUP is None):
+            self.DIFF_LOOKUP = self._Compute_DiffTable()
 
-# Afterwards: Predict the next PCM value. It is very refreshing, but it is actually.
-#
-#   static int adpcm_estindex_ 0 [16] = {
-#        1, 3, 5, 7, 9, 11, 13, 15,
-#       -1, -3, -5, -7, -9, -11, -13, -15
-#   };
-#   mc -> mc_amp + = (short) (adpcm_estimindex - 0 [(int) s] * 16/8 * dl);
-#          
-# adpcm_estindex_0[] is 1/2 value of adpcm_estimindex[], meaning of this sequence
-# is the median value of the above ratio range.
-# By multiplying this ratio by 16 = 2 ^ 4 to make it into 16 bits and multiplying
-# it by (dl / 8), the predicted difference value is obtained and recorded.
-# That's why it's clearer if you doubled adpcm_estimindex[] beforehand.
 
-# According to the value of b, predict the difference ratio to be used next
-# time and save it in mc_estim. A total of 49 stages.
-# Aside from that, when only used here (in encoding), adpcm_estimstep[16] can
-# be adpcm_estimstep[8].
-# adpcm_estimstep[16] is only necessary for in use for adpcm2pcm.
+    def Reset(self):
+        """
+        Resets the decoder object's SIGNAL and STEP value.
+        """
+
+        self.SIGNAL_MAX =  (1 << (self.OUTPUT_BITS - 1)) - 1
+        self.SIGNAL_MIN = -(1 << (self.OUTPUT_BITS - 1))
+
+        self._signal = -2
+        self._step = 0
+
+
+    def _Compute_DiffTable(self):
+        bitmap = [
+            [ 1, 0, 0, 0], [ 1, 0, 0, 1], [ 1, 0, 1, 0], [ 1, 0, 1, 1],
+            [ 1, 1, 0, 0], [ 1, 1, 0, 1], [ 1, 1, 1, 0], [ 1, 1, 1, 1],
+            [-1, 0, 0, 0], [-1, 0, 0, 1], [-1, 0, 1, 0], [-1, 0, 1, 1],
+            [-1, 1, 0, 0], [-1, 1, 0, 1], [-1, 1, 1, 0], [-1, 1, 1, 1]
+        ]
+        diff_lut = [0] * (49 * 16)
+        for step in range(49):
+
+            stepval = int(16.0 * pow(11.0 / 10.0, float(step)))
+
+            for nib in range(16):
+                diff_lut[step * 16 + nib] = bitmap[nib][0] * \
+                (stepval      * bitmap[nib][1] +
+                 stepval // 2 * bitmap[nib][2] +
+                 stepval // 4 * bitmap[nib][3] +
+                 stepval // 8)
+        
+        return diff_lut
+
+
+    def _DecodeNibble(self, nibble):
+
+        self._signal += self.DIFF_LOOKUP[self._step * 16 + (nibble & 15)]
+        self._signal = _util.Clamp(self._signal, self.SIGNAL_MIN, self.SIGNAL_MAX)
+
+        self._step += self.STEP_INDEX_SHIFT[nibble & 7]
+        self._step = _util.Clamp(self._step, 0, 48)
+
+        decoded = self._signal << self.SIGNAL_GAIN
+        decoded = _util.Clamp(decoded, -0x8000, 0x7FFF)
+
+        return decoded
+
+
+    def Decode(self, Data):
+        """
+        Decodes a binary OKI ADPCM encoded data stream.
+        
+        Args:
+            Data: Binary OKI ADPCM encoded data stream.
+            Splits: List of split points (in samples) to split
+                    seperate files.
+
+        Returns:
+            Bytearray of decoded stream.
+        """
+
+        self.Reset()
+        decoded = bytearray()
+
+        for byte in Data:
+            for nibble in (byte & 0x0F, byte >> 4):
+                decoded.extend(
+                    struct.pack("<h", self._DecodeNibble(nibble))
+                )
+
+        return decoded
+
+
+
+
+class Oki:
+
+    # Oki_Encoder _Encoder;
+    # Oki_Decoder _Decoder;
+
+    def __init__(self):
+        self._Encoder = Oki_Encoder()
+        self._Decoder = Oki_Decoder()
+        self.b_ResetBeforeOperation = True
+
+
+    def Encode(self, Sample_Data, Sample_BitDepth=16):
+        if (self.b_ResetBeforeOperation): self._Encoder.Reset()
+        return self._Encoder.Encode(Sample_Data, Sample_BitDepth)
+
+    
+    def Decode(self, Sample_Data):
+        if (self.b_ResetBeforeOperation): self._Decoder.Reset()
+        return self._Decoder.Decode(Sample_Data)
