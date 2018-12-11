@@ -1,6 +1,7 @@
 import struct
 from .._misc.exc import *
 from .._misc._encoding import *
+from .._misc import _util
 
 
 #**********************************************************
@@ -27,7 +28,7 @@ class Command:
     def Export(self, Command_Parameter):
         raise NotImplementedError
 
-_clamp = lambda value, minv, maxv: max(min(value, maxv), minv)
+
 
 
 #**********************************************************
@@ -119,7 +120,7 @@ class Tempo_Bpm(Command):
         #
         # Thanks to vampirefrog
 
-        timerb = _clamp(timerb, 0, 256)
+        timerb = _util.Clamp(timerb, 0, 256)
         return bytearray([0xFF, timerb])
 
 
