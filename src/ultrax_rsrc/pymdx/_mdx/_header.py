@@ -1,5 +1,7 @@
 import struct as struct
-from .._misc._encoding import *
+from array import array
+
+from .._misc._encoding import ENC_WORD
 
 
 class Header:
@@ -14,7 +16,7 @@ class Header:
 
     def _Export(self):
         '''Exports the current MDX header object to a bytearray.'''
-        e = bytearray()
+        e = array('B')
         for item in [self.Title.encode('shift-jis'), b"\x0d\x0a\x1a", self.PdxFilename.upper().encode()]:
             e.extend(item)
 

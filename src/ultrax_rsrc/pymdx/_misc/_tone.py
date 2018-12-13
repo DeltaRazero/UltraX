@@ -1,3 +1,5 @@
+from array import array
+
 
 class _OPM_Operator:
     Ar, Dr, Sl, Sr, Rr = 0, 0, 0, 0, 0
@@ -49,7 +51,7 @@ class Tone(_OPM_Channel):
             a(op.Dt2<<6   | op.Sr)
             a(op.Sl<<4    | op.Rr)
 
-        e = bytearray([self.ToneId, self.Fb<<3 | self.Alg, self.SlotMask])
+        e = array('B', [self.ToneId, self.Fb<<3 | self.Alg, self.SlotMask])
 
         for param in range(l_param):
             for op in range(l_op):

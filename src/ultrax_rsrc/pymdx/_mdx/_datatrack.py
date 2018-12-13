@@ -1,5 +1,7 @@
-from ._cmd_interface import Command_Interface
+from array import array
 from enum import Enum
+
+from ._cmd_interface import Command_Interface
 
 
 class Datatrack():
@@ -14,7 +16,7 @@ class Datatrack():
 
         self._Precompile()
 
-        e = bytearray()
+        e = array('B')
         for i in self.Data:
             e.extend(i.Export()) 
 
