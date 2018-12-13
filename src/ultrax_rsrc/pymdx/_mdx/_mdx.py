@@ -1,6 +1,5 @@
-from ._header import Header
 from ._datatrack import Datatrack
-from .._misc._encoding import *
+from ._header import Header
 
 
 class Mdx:
