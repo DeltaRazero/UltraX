@@ -1,7 +1,9 @@
 import struct
-from .._misc.exc import *
-from .._misc._encoding import *
+from array import array
+
 from .._misc import _util
+from .._misc._encoding import ENC_LONG, ENC_WORD
+from .._misc.exc import *
 
 
 #**********************************************************
@@ -30,7 +32,6 @@ class Command:
 
 
 
-
 #**********************************************************
 #
 #    Standard commands
@@ -41,7 +42,7 @@ class Command:
 
 class Rest(Command):
 # 休符データ
-    def __init__(self, Clocks: int) -> bytearray:
+    def __init__(self, Clocks: int) -> array:
         self.Clocks = Clocks
 
     def Count(self, CounterObj):
@@ -52,7 +53,7 @@ class Rest(Command):
     def Export(self):
         if self.Clocks > 128:
             clocks = self.Clocks
-            cmds = bytearray()
+            cmds = array('B')
             
             while (clocks > 128):
                 cmds.append(Rest(128).Export())
@@ -62,7 +63,7 @@ class Rest(Command):
             return cmds
 
         else:
-            return bytearray(self.Clocks-1)
+            return array('B', [self.Clocks-1])
 
 
 class Note(Command):
@@ -84,7 +85,7 @@ class Note(Command):
 
         if self.Clocks > 256:
             clocks = self.Clocks
-            cmds = bytearray()
+            cmds = array('B')
             
             cmds.extend(Legato().Export())
             while (clocks > 256):
@@ -96,7 +97,7 @@ class Note(Command):
             return cmds
 
         else:
-            return bytearray([self.Data, self.Clocks-1])
+            return array('B', [self.Data, self.Clocks-1])
 
 
 class Tempo_Bpm(Command):
@@ -121,7 +122,7 @@ class Tempo_Bpm(Command):
         # Thanks to vampirefrog
 
         timerb = _util.Clamp(timerb, 0, 256)
-        return bytearray([0xFF, timerb])
+        return array('B', [0xFF, timerb])
 
 
 class Tempo_TimerB(Command):
@@ -132,7 +133,7 @@ class Tempo_TimerB(Command):
         self.Data = Data
 
     def Export(self):
-        return bytearray([0xFF, self.Data])
+        return array('B', [0xFF, self.Data])
 
 
 class OpmControl(Command):
@@ -144,7 +145,7 @@ class OpmControl(Command):
         self.Data = Data
 
     def Export(self):
-        return bytearray([0xFE, self.Register, self.Data])
+        return array('B', [0xFE, self.Register, self.Data])
 
 
 class Tone(Command):
@@ -155,7 +156,7 @@ class Tone(Command):
         self.Data = Data
 
     def Export(self):
-        return bytearray([0xFD, self.Data])
+        return array('B', [0xFD, self.Data])
 
 
 class Pan(Command):
@@ -166,7 +167,7 @@ class Pan(Command):
         self.Data = Data
 
     def Export(self):
-        return bytearray([0xFC, self.Data])
+        return array('B', [0xFC, self.Data])
 
 
 class Volume(Command):
@@ -177,7 +178,7 @@ class Volume(Command):
         self.Data = Data
 
     def Export(self):
-        return bytearray([0xFB, self.Data])
+        return array('B', [0xFB, self.Data])
 
 
 class Volume_Increase(Command):
@@ -185,7 +186,7 @@ class Volume_Increase(Command):
     _amountBytes = 1
 
     def Export(self):
-        return bytearray([0xFA])
+        return array('B', [0xFA])
 
 
 class Volume_Decrease(Command):
@@ -193,7 +194,7 @@ class Volume_Decrease(Command):
     _amountBytes = 1
 
     def Export(self):
-        return bytearray([0xF9])
+        return array('B', [0xF9])
 
 
 class Gate(Command):
@@ -204,7 +205,7 @@ class Gate(Command):
         self.Data = Data
 
     def Export(self, CounterObj):
-        return bytearray([0xF8, self.Data])
+        return array('B', [0xF8, self.Data])
 
 
 class Legato(Command):
@@ -213,7 +214,7 @@ class Legato(Command):
     _amountBytes = 1
 
     def Export(self):
-        return bytearray([0xF7])
+        return array('B', [0xF7])
 
 
 class Repeat_Start(Command):
@@ -233,7 +234,7 @@ class Repeat_Start(Command):
         return
 
     def Export(self):
-        return bytearray([0xF6, self.Data, 0x00])
+        return array('B', [0xF6, self.Data, 0x00])
 
 
 class Repeat_End(Command):
@@ -280,7 +281,7 @@ class Repeat_End(Command):
         return
 
     def Export(self):
-        e = bytearray([0xF5])
+        e = array('B', [0xF5])
         e.extend(struct.pack(ENC_WORD, -self.Data))
         return e
 
@@ -301,7 +302,7 @@ class Repeat_Escape(Command):
         return
 
     def Export(self):
-        e = bytearray([0xF4])
+        e = array('B', [0xF4])
         e.extend(struct.pack(ENC_WORD, self.Data+1))
         return e
 
@@ -314,7 +315,7 @@ class Detune(Command):
         self.Data = Data
 
     def Export(self):
-        e = bytearray([0xF3])
+        e = array('B', [0xF3])
         e.extend(struct.pack(ENC_WORD, self.Data))
         return e
 
@@ -327,7 +328,7 @@ class Portamento(Command):
         self.Data = Data
 
     def Export(self):
-        e = bytearray([0xF2])
+        e = array('B', [0xF2])
         e.extend(struct.pack(ENC_WORD, self.Data))
         return e
 
@@ -347,11 +348,11 @@ class DataEnd(Command):
 
     def Export(self):
         if (self.Data < 1):
-            e = bytearray([0xF1, self.Data])
+            e = array('B', [0xF1, self.Data])
             return e 
 
         else:
-            e = bytearray([0xF1])
+            e = array('B', [0xF1])
             e.extend(struct.pack(ENC_WORD, -self.Data))
             return e
 
@@ -364,7 +365,7 @@ class DelayKeyon(Command):
         self.Data = Data
 
     def Export(self):
-        e = bytearray([0xF0])
+        e = array('B', [0xF0])
         e.append(self.Data)
         return e
 
@@ -377,7 +378,7 @@ class Sync_Resume(Command):
         self.Data = Data
 
     def Export(self):
-        e = bytearray([0xEF])
+        e = array('B', [0xEF])
         e.append(self.Data)
         return e
 
@@ -387,7 +388,7 @@ class Sync_Wait(Command):
     _amountBytes = 1
 
     def Export(self):
-        return bytearray([0xEE])
+        return array('B', [0xEE])
 
 
 class Noise_Control(Command):
@@ -424,7 +425,7 @@ class Noise_Control(Command):
         else:
             raise TypeError()
 
-        e = bytearray([0xED])
+        e = array('B', [0xED])
         e.append(self.Data | self._NoiseEnabled<<7)
         return e
 
@@ -455,7 +456,7 @@ class Adpcm_Control(Command):
         self.Data = Data
 
     def Export(self):
-        e = bytearray([0xED])
+        e = array('B', [0xED])
         e.append(self.Data)
         return e
 
@@ -466,7 +467,7 @@ class Expcm_Enable(Command):
     _amountBytes = 1
     
     def Export(self):
-        return bytearray([0xE8])
+        return array('B', [0xE8])
 
 
 class LoopMark(Command):
@@ -477,7 +478,7 @@ class LoopMark(Command):
         return
 
     def Export(self):
-        return bytearray()
+        return array('B')
 
 
 # :: Pitch LFO // 音程LFO ::
@@ -486,7 +487,7 @@ class Lfo_Pitch_Enable(Command):
     _amountBytes = 2
 
     def Export(self):
-        return bytearray([0xEC, 0x81])
+        return array('B', [0xEC, 0x81])
 
 
 class Lfo_Pitch_Disable(Command):
@@ -494,7 +495,7 @@ class Lfo_Pitch_Disable(Command):
     _amountBytes = 2
 
     def Export(self):
-        return bytearray([0xEC, 0x80])
+        return array('B', [0xEC, 0x80])
 
 
 class Lfo_Pitch_Control(Command):
@@ -507,7 +508,7 @@ class Lfo_Pitch_Control(Command):
         self.Amp  = Amp
 
     def Export(self):
-        e = bytearray([0xEC, self.Wave])
+        e = array('B', [0xEC, self.Wave])
         e.extend(struct.pack(ENC_WORD, self.Freq))
         e.extend(struct.pack(ENC_WORD, self.Amp))
         return e
@@ -519,7 +520,7 @@ class Lfo_Volume_Enable(Command):
     _amountBytes = 2
 
     def Export(self):
-        return bytearray([0xEB, 0x81])
+        return array('B', [0xEB, 0x81])
 
 
 class Lfo_Volume_Disable(Command):
@@ -527,7 +528,7 @@ class Lfo_Volume_Disable(Command):
     _amountBytes = 2
 
     def Export(self):
-        return bytearray([0xEB, 0x80])
+        return array('B', [0xEB, 0x80])
 
 
 class Lfo_Volume_Control(Command):
@@ -540,7 +541,7 @@ class Lfo_Volume_Control(Command):
         self.Amp  = Amp
 
     def Export(self):
-        e = bytearray([0xEB, self.Wave])
+        e = array('B', [0xEB, self.Wave])
         e.extend(struct.pack(ENC_WORD, self.Freq))
         e.extend(struct.pack(ENC_WORD, self.Amp))
         return e
@@ -552,14 +553,14 @@ class Lfo_Opm_Enable(Command):
     _amountBytes = 2
 
     def Export(self):
-        return bytearray([0xEA, 0x81])
+        return array('B', [0xEA, 0x81])
 
 class Lfo_Opm_Disable(Command):
 # OPMLFO OFF
     _amountBytes = 2
 
     def Export(self):
-        return bytearray([0xEA, 0x80])
+        return array('B', [0xEA, 0x80])
 
 class Lfo_Opm_Control(Command):
 # OPMLFO制御
@@ -574,9 +575,8 @@ class Lfo_Opm_Control(Command):
         self.Pms_Ams     = Pms_Ams
 
     def Export(self):
-        return bytearray([0xEA, self.RestartWave*0x40 + self.Wave, self.Speed, self.Pmd, self.Amd, self.Pms_Ams])
+        return array('B', [0xEA, self.RestartWave*0x40 + self.Wave, self.Speed, self.Pmd, self.Amd, self.Pms_Ams])
 #endregion
-
 
 
 
@@ -596,9 +596,8 @@ class Ext_16_Fadeout(Command):
         self.Data = Data
 
     def Export(self):
-        return bytearray([_CMD_EXT, 0x01, self.Data])
+        return array('B', [_CMD_EXT, 0x01, self.Data])
 #endregion
-
 
 
 
@@ -618,7 +617,7 @@ class Ext_16_02EX_RelativeDetune(Command):
         self.Data = Data
 
     def Export(self):
-        e = bytearray([_CMD_EXT_02EX, 0x01])
+        e = array('B', [_CMD_EXT_02EX, 0x01])
         e.extend(struct.pack(ENC_WORD, self.Data))
         return e
 
@@ -632,7 +631,7 @@ class Ext_16_02EX_Transpose(Command):
         self.Data = Data
 
     def Export(self):
-        return bytearray([_CMD_EXT_02EX, 0x02, self.Data])
+        return array('B', [_CMD_EXT_02EX, 0x02, self.Data])
 
 
 class Ext_16_02EX_RelativeTranspose(Command):
@@ -644,9 +643,8 @@ class Ext_16_02EX_RelativeTranspose(Command):
         self.Data = Data
 
     def Export(self):
-        return bytearray([_CMD_EXT_02EX, 0x03, self.Data])
+        return array('B', [_CMD_EXT_02EX, 0x03, self.Data])
 #endregion
-
 
 
 
@@ -669,7 +667,7 @@ class Ext_17_Pcm8_Control(Command):
         self.d1 = d1
 
     def Export(self):
-        e = bytearray([_CMD_EXT, 0x02])
+        e = array('B', [_CMD_EXT, 0x02])
         e.extend(struct.pack(ENC_WORD, self.d0))
         e.extend(struct.pack(ENC_LONG, self.d1))
         return e
@@ -685,7 +683,7 @@ class Ext_17_UseKeyoff(Command):
         self.Data = Data
 
     def Export(self):
-        return bytearray([_CMD_EXT, 0x03, self.Data])
+        return array('B', [_CMD_EXT, 0x03, self.Data])
 
 
 class Ext_17_Channel_Control(Command):    # TODO: Currently buggy
@@ -699,7 +697,7 @@ class Ext_17_Channel_Control(Command):    # TODO: Currently buggy
 
     def Export(self):
         # TODO: Using rest, note, ext17_not or ext17_addlenght commands longer than 128/256 clocks, does not work
-        return bytearray([_CMD_EXT, 0x04, self.Data])
+        return array('B', [_CMD_EXT, 0x04, self.Data])
 
 
 class Ext_17_AddLenght(Command):    # TODO: research
@@ -718,7 +716,7 @@ class Ext_17_AddLenght(Command):    # TODO: research
     def Export(self):
         if (self.Clocks > 256):
             clocks = self.Clocks
-            cmds = bytearray()
+            cmds = array('B')
 
             while (clocks > 256):
                 cmds.extend(Ext_17_AddLenght(256).Export())
@@ -728,7 +726,7 @@ class Ext_17_AddLenght(Command):    # TODO: research
             return cmds
 
         else:
-            return bytearray([_CMD_EXT, 0x05, self.Clocks-1])
+            return array('B', [_CMD_EXT, 0x05, self.Clocks-1])
     
 
 class Ext_17_UseFlags(Command):    # TODO: what does this do?
@@ -741,7 +739,7 @@ class Ext_17_UseFlags(Command):    # TODO: what does this do?
         self.Data = Data
 
     def Export(self):
-        return bytearray([_CMD_EXT, 0x06, self.Data])
+        return array('B', [_CMD_EXT, 0x06, self.Data])
 
 
 # 音符データ
@@ -758,7 +756,7 @@ class Ext_17_Note(Command):
 
     def Export(self):
         if self.Clocks > 256:
-            cmds = bytearray()
+            cmds = array('B')
             
             cmds.extend(Note(self.Data, 256).Export())
             cmds.extend(Ext_17_AddLenght(self.Clocks-256).Export())
