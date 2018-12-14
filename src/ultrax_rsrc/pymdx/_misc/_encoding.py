@@ -1,14 +1,17 @@
-from enum import Enum
+from enum import Enum as _Enum
 
 
 ENC_WORD = ">h"
 ENC_LONG = ">l"
 
-class SAMPLE_ENCODING(Enum):
+
+class SAMPLE_ENCODING(_Enum):
     "Sample encoding values, to be used in PDX."
 
-    PCM_16      = 0
-    PCM_8       = 1
-    ADPCM_OKI   = 2
-    PCM_U8      = 3
-    PCM_U16     = 4
+    UNSUPPORTED = -1
+    NO_ENCODING = 0
+    ADPCM_OKI   = 1
+    LPCM_16     = 2
+    LPCM_8      = 3
+    LPCM_U16    = 4
+    LPCM_U8     = 5
