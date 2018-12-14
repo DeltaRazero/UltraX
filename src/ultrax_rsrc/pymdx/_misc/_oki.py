@@ -1,11 +1,14 @@
-from .._misc import _util
 import struct
 
+from array import array
+from enum import Enum as _Enum
+
+from .._misc import _util
+from ._encoding import SAMPLE_ENCODING
 
 
 # Encoding algorithm: Copyright (c) 2001 Tetsuya Isaki. All rights reserved.
-
-class Oki_Encoder:
+class _Oki_Encoder:
 
     _ADPCM_ESTIM_INDEX = [
          2,  6,  10,  14,  18,  22,  26,  30,
@@ -80,7 +83,7 @@ class Oki_Encoder:
             b_Add = True
 
         l_e = l_SampleData / 2
-        e = bytearray([0]*l_e)
+        e = array('B', [0]*l_e)
         
         # for (int s = 0; s < l_e-2; s+=2)
         for s in range(0,l_e-2, 2):
@@ -95,8 +98,7 @@ class Oki_Encoder:
 
 
 
-
-class Oki_Decoder:
+class _Oki_Decoder:
     """Class that can decode OKI ADPCM encoded audio streams.
     """
 
@@ -182,7 +184,7 @@ class Oki_Decoder:
         """
 
         self.Reset()
-        decoded = bytearray()
+        decoded = array('B')
 
         for byte in Data:
             for nibble in (byte & 0x0F, byte >> 4):
@@ -194,23 +196,46 @@ class Oki_Decoder:
 
 
 
+class OKI_ADPCM_RATES(_Enum):
+    # Clock rates: (16000000, but not widely supported) / 8000000 / 4000000 
+    # Dividers: 1024, 768, 512
+    # Samplerates: (31250, 20833, 15625) / 7812, 10416, 15625 / 3906, 5208, 7812
+    RATE_3906  =  3906
+    RATE_5208  =  5208
+    RATE_7812  =  7812
+    RATE_10416 = 10416
+    RATE_15625 = 15625
+    RATE_20833 = 20833
+    RATE_31250 = 31250
 
-class Oki:
+
+class Codec_Adpcm_Oki:
 
     # Oki_Encoder _Encoder;
     # Oki_Decoder _Decoder;
 
-    def __init__(self):
-        self._Encoder = Oki_Encoder()
-        self._Decoder = Oki_Decoder()
+    def __init__(self, CodecObjRef):
+        self._CodecObj = CodecObjRef    # TODO: Do I even need to do this lol
+        self._Encoder  = _Oki_Encoder()
+        self._Decoder  = _Oki_Decoder()
         self.b_ResetBeforeOperation = True
 
 
-    def Encode(self, Sample_Data, Sample_BitDepth=16):
-        if (self.b_ResetBeforeOperation): self._Encoder.Reset()
-        return self._Encoder.Encode(Sample_Data, Sample_BitDepth)
+    def Encode(self, Sample_Data, Sample_Encoding):
+        if (Sample_Data is SAMPLE_ENCODING.LPCM_8  or  Sample_Data is SAMPLE_ENCODING.LPCM_16):
 
-    
+            if (self.b_ResetBeforeOperation): self._Encoder.Reset()
+            Sample_BitDepth = {
+                SAMPLE_ENCODING.LPCM_8:   8,
+                SAMPLE_ENCODING.LPCM_16: 16,
+                }[Sample_Encoding]
+
+            return self._Encoder.Encode(Sample_Data, Sample_BitDepth)
+
+        else:
+            raise ValueError("Encoding {} to OKI ADPCM is not supported".format(Sample_Encoding.name) )
+
+
     def Decode(self, Sample_Data):
         if (self.b_ResetBeforeOperation): self._Decoder.Reset()
         return self._Decoder.Decode(Sample_Data)
