@@ -1,5 +1,6 @@
-from ._encoding import SAMPLE_ENCODING
+from .._encoding import SAMPLE_ENCODING
 from ._oki import Codec_Adpcm_Oki as _Codec_Adpcm_Oki
+
 #from ._lpcm import Codec_Lpcm_8, Codec_Lpcm_16
 
 

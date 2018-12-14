@@ -3,8 +3,8 @@ import struct
 from array import array
 from enum import Enum as _Enum
 
-from .._misc import _util
-from ._encoding import SAMPLE_ENCODING
+from .. import _util
+from .._encoding import SAMPLE_ENCODING
 
 
 # Encoding algorithm: Copyright (c) 2001 Tetsuya Isaki. All rights reserved.

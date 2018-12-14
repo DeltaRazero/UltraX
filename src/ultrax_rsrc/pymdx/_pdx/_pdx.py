@@ -1,11 +1,12 @@
 import io
 import os
 import struct
+
 from array import array
 
 from .._misc import _util
-from .._misc._codec import *
-from .._misc._encoding import ENC_LONG, ENC_WORD
+from .._misc._encoding import ENC_LONG, ENC_WORD, SAMPLE_ENCODING
+from .._misc.codec import *
 
 
 class Pdx:
