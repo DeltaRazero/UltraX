@@ -1,4 +1,4 @@
-from array import array as _array
+from array import array
 
 from . import _opm
 
@@ -36,7 +36,7 @@ class Tone(_opm.OPM_Channel):
             a(op.Dt2<<6   | op.Sr)
             a(op.Sl<<4    | op.Rr)
 
-        e = _array('B', [self.ToneId, self.Fb<<3 | self.Alg, self.SlotMask])
+        e = array('B', [self.ToneId, self.Fb<<3 | self.Alg, self.SlotMask])
 
         for param in range(l_param):
             for op in range(l_op):
