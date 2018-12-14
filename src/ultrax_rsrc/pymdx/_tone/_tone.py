@@ -1,31 +1,16 @@
-from array import array
+from array import array as _array
+
+from . import _opm
 
 
-class _OPM_Operator:
-    Ar, Dr, Sl, Sr, Rr = 0, 0, 0, 0, 0
-    Tl = 0
-    Dt1, Dt2 = 0, 0
-    Mult = 0
-    Ks = 0
-    Am_On = 0
-
-
-class _OPM_Channel:
-
-    def __init__(self):
-        self.Fb = 0
-        self.Alg = 0
-        self.Op = [_OPM_Operator() for _ in range(4)]
-
-
-class Tone(_OPM_Channel):
+class Tone(_opm.OPM_Channel):
     """MDX tone definition object."""
 
     ToneId   = 0
     SlotMask = 15
 
     def __init__(self):
-        _OPM_Channel.__init__(self)
+        _opm.OPM_Channel.__init__(self)
         return
 
     def SetTone(self, Patch):
@@ -51,7 +36,7 @@ class Tone(_OPM_Channel):
             a(op.Dt2<<6   | op.Sr)
             a(op.Sl<<4    | op.Rr)
 
-        e = array('B', [self.ToneId, self.Fb<<3 | self.Alg, self.SlotMask])
+        e = _array('B', [self.ToneId, self.Fb<<3 | self.Alg, self.SlotMask])
 
         for param in range(l_param):
             for op in range(l_op):
