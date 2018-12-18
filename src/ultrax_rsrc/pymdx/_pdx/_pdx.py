@@ -16,8 +16,10 @@ class Pdx:
             Banks: Dictionary containing banks. Key values are
                 integers in range 0~255. Number of banks should
                 be 1 when not using EX-PCM mode in .MDX.
-            bFillEmptyBanks: Boolean switch to fill in empty
-                bank slots or to export them one after eachother.
+            InsertEmptyBanks: Bool to enable inserting empty banks
+                when banks do not follow eachotherup (i.e. an empty
+                bank is created when there is no bank between bank 0
+                and bank 2).
                 Defaults to True.
         """
 
@@ -31,44 +33,81 @@ class Pdx:
                 mode in .MDX.
         """
         self.Banks = {i: _PdxBank() for i in range(Banks)}
-        self.bFillEmptyBanks = True
+        self.InsertEmptyBanks = True
+        self._bank_filled = False 
 
 
-    def ImportPdx(self, Path, AmountBanks=1):
+    def ImportPdx(self, path, amount_banks=0):
+        """Imports and inserts an existing .PDX bank.
 
-        # TODO: Bank recognition
+        Args:
+            path: File path to the .PDX file.
+            amount_banks: Amount of banks to import from .PDX
+                file. When set to 0, automatically detects the
+                amount of banks present in .PDX file. 
 
-        with open(Path, 'rb') as rf:
+        Returns:
+            Void.
+        """
+        with open(path, 'rb') as rf:
             f = io.BytesIO(rf.read())
-        l_file = os.path.getsize(Path)
+        l_file = os.path.getsize(path)
 
-        banks = [_PdxBank() for _ in range(AmountBanks)]
 
-        pcm_offsets = [[] for _ in range(AmountBanks)]
-        for b in range(AmountBanks):
+        # Bank recognition
+        if (amount_banks == 0):
+
+            # Every PDX file has atleast 1 bank
+            amount_banks = 1
+
+            #f.seek(4, 1)
+            f.seek(0x304, 1)    # Skip to 2nd bank
+            is_bank = True
+            while (is_bank):
+                for _ in range(96):
+                    is_header_entry = struct.unpack(ENC_WORD, f.read(2))[0] == 0
+
+                    if not (is_header_entry):
+                        # TODO: EX-PDX lenght recognition (?)
+                        is_bank = False
+                        break
+
+                    f.seek(6, 1)
+                amount_banks += 1
+
+        # Reset position + init banks
+        f.seek(0, 0)
+        banks = [_PdxBank() for _ in range(amount_banks)]
+
+        # Get sample offsets
+        sample_offsets = [[] for _ in range(amount_banks)]
+        for b in range(amount_banks):
             for i in range(96):
-                offset = struct.unpack(ENC_LONG, f.read(4))
+                offset = struct.unpack(ENC_LONG, f.read(4))[0]
                 f.seek(2, 1)
-                lenght = struct.unpack(ENC_LONG, f.read(4))
-                pcm_offsets[b].append((offset, lenght))
+                lenght = struct.unpack(ENC_LONG, f.read(4))[0]
+                sample_offsets[b].append((offset, lenght))
 
         # Get PCM data
-        for b in range(AmountBanks):
-            for i, pcm_offset in enumerate(pcm_offsets[b]):
+        for b in range(amount_banks):
+            for i, sample_offset in enumerate(sample_offsets[b]):
 
-                if pcm_offset[1] > 1 and (pcm_offset[0] + pcm_offset[1]) <= l_file:
+                if sample_offset[1] > 1 and (sample_offset[0] + sample_offset[1]) <= l_file:
 
-                    f.seek(pcm_offset[0])    # Go to sample start offset
+                    f.seek(sample_offset[0])    # Go to sample start offset
 
                     sample = banks[b].Samples[i]
                     sample.Encoding = SAMPLE_ENCODING.ADPCM_OKI
-                    sample.SampleData = f.read(pcm_offset[1])
+                    sample.SampleData = f.read(sample_offset[1])
         
         f.close()
 
         b = sorted(self.Banks.keys())[-1] # Get last key number
-        if (len(self.Banks) > 1):
+
+        # TODO: actually check if there are empty banks
+        if (self._bank_filled):
             b += 1    # Do not overwrite filled bank
+            self._bank_filled = True
 
         for i, bank in enumerate(banks):
             self.Banks[b + i] = bank
@@ -144,14 +183,14 @@ class Pdx:
 
         self.Banks = sorted(self.Banks.items())    # In C++ list of pointers maybe?
 
-        if (self.bFillEmptyBanks):
+        if (self.InsertEmptyBanks):
             empty_bank_header_data = (struct.pack(ENC_LONG, 0) + pdx_gap + struct.pack(ENC_WORD, 0)) * 96
             empty_bank_header = array('B', empty_bank_header_data)
 
         previous_bank = next(iter(self.Banks))
         for k, bank in enumerate(self.Banks):
 
-            if (self.bFillEmptyBanks):
+            if (self.InsertEmptyBanks):
                 while (k != previous_bank+1):
                     h += empty_bank_header
                     previous_bank += 1
@@ -178,18 +217,39 @@ class Pdx:
 
 
 class _PdxBank:
-    
+    """.PDX sample bank class.
+
+        Attributes:
+            Samples: Array of type PdxSample class. Has 96
+                instances of PdxSample. These will contain
+                actual sample related data.
+        """
+
     def __init__(self):
         self.Samples = [_PdxSample() for _ in range(96)]
 
 
 
 class _PdxSample(SampleContainer):
+    """.PDX sample bank class.
+
+        Attributes:
+            Encoding: Contains enum value of SAMPLE_ENCODING.
+                Tells which encoding the given sample data is in.
+                Set to SAMPLE_ENCODING.LPCM_16 by default.
+            EncodeTo: Contains enum value of SAMPLE_ENCODING.
+                Tells to which encoding the sample data should be
+                converted to during export.
+                Set to SAMPLE_ENCODING.ADPCM_OKI by default.
+            Data: Vector/list that should contain sample data.
+            Rate:
+            ResampleTo:
+        """
+
     def __init__(self):
         # Data: list, Encoding=SAMPLE_ENCODING.LPCM_16, EncodeTo=SAMPLE_ENCODING.ADPCM_OKI
+        SampleContainer.__init__()
         self.Encoding = SAMPLE_ENCODING.LPCM_16
-        self.SampleData = []
-
         self.EncodeTo = SAMPLE_ENCODING.ADPCM_OKI
 
 
@@ -199,8 +259,8 @@ class _PdxSample(SampleContainer):
             CodecContainerObj = CodecContainer()
 
         if (self.Encoding is self.EncodeTo):
-            if type(self.SampleData) is list:         return bytearray(self.SampleData)
-            if type(self.SampleData) is bytearray:    return self.SampleData
+            if type(self.Data) is list:         return bytearray(self.Data)
+            if type(self.Data) is bytearray:    return self.Data
             raise Exception()
 
         self._Sign_LPCM()
@@ -218,11 +278,11 @@ class _PdxSample(SampleContainer):
     def _Sign_LPCM(self):    # TODO: Move to PDX export?
 
         if (self.Encoding is SAMPLE_ENCODING.LPCM_U8):
-            self.SampleData = [_util.Sign_U8(sample) for sample in self.SampleData]
+            self.Data = [_util.Sign_U8(sample) for sample in self.Data]
             self.Encoding = SAMPLE_ENCODING.LPCM_8
 
         elif (self.Encoding is SAMPLE_ENCODING.LPCM_U16):
-            self.SampleData = [_util.Sign_U16(sample) for sample in self.SampleData]
+            self.Data = [_util.Sign_U16(sample) for sample in self.Data]
             self.Encoding = SAMPLE_ENCODING.LPCM_16
 
         return
