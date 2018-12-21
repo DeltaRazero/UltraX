@@ -13,7 +13,7 @@ Channel = {
     'H': 7,
 }
 
-class Mml:
+class UXC_Mml:
 
     def __init__(self, path):
 

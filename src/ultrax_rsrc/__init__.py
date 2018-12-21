@@ -1,6 +1,10 @@
-import sys, os
-sys.path.append(os.path.join(sys.path[0], r"ultrax_rsrc"))
+import os
+import sys
 
-from . import pymdx as pymdx
-from . import Locale
+from . import pymdx
+from . import uxc
+
+#sys.path.append(os.path.join(sys.path[0], r"ultrax_rsrc"))
+
+#from . import locale
 #from . import libDeflemask
