@@ -1,10 +1,10 @@
 import struct as _struct
+
 from array import array as _array
+from enum import Enum as _Enum
 
-from .._misc import _util
-from .._misc import _encoding
+from .._misc import _encoding, _util
 from .._misc.exc import *
-
 
 #**********************************************************
 #
@@ -13,6 +13,12 @@ from .._misc.exc import *
 #**********************************************************
 
 OPM_CLOCK = 4000000 # Hz
+
+class LFO_WAVEFORM(_Enum):
+    SAWTOOTH  = 0
+    SQUARE    = 1
+    TRIANGLE  = 2
+    OPM_NOISE = 3
 
 _CMD_EXT       = 0xE7
 _CMD_EXT_02EX  = 0xE6
