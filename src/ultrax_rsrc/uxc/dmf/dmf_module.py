@@ -1,11 +1,11 @@
 
-import io     as _io
-import os     as _os
+import io as _io
+import os as _os
 import struct as _struct
-import zlib   as _zlib
+import zlib as _zlib
 
+from array import array as _array
 from enum import Enum as _Enum
-
 
 
 #************************************************
@@ -15,8 +15,8 @@ from enum import Enum as _Enum
 #************************************************
 
 class _Custom_BytesIO(_io.BytesIO):
-    def __init__(self, args, *kwargs):
-        _io.BytesIO.__init__(self, args, kwargs)
+    def __init__(self, initial_bytes=None):
+        _io.BytesIO.__init__(self, initial_bytes)
 
     def read_bool(self):
         """Read 1 byte as bool"""
@@ -26,7 +26,24 @@ class _Custom_BytesIO(_io.BytesIO):
         """Read and unpack"""
         if mode == None:
             a = {1:'b', 2:'h', 4:'l',}[size]
-        return _struct.unpack(a, self.read(size))[0]
+        try:
+            return _struct.unpack(a, self.read(size))[0]
+        except Exception:
+            print(self.tell() )
+            return None
+
+    # TODO: replace this with something better
+    # NOTE: temp solution
+    def readu_str(self, size=None):
+        a = _array('B', self.read(size))
+        b = ''
+        for i in a:
+            if not (i == 0):
+                b += bytes([i]).decode()
+        if b == '':
+            b = 0
+        return int(b)
+
 
 
 
@@ -41,8 +58,8 @@ class _Header:
     def __init__(self):
         self.Version    = None
         self.System     = None
-        self.SongName   = None
-        self.SongAuthor = None
+        self.SongName   = ""
+        self.SongAuthor = ""
 
 # Enum for available systems for in Header.System
 class SYSTEM(_Enum):
@@ -220,7 +237,7 @@ class Dmf:
 
         with _Custom_BytesIO(_zlib.decompress(open(path, 'rb').read()) ) as f:
             #f = io.BytesIO()
-            f.seek(19)
+            f.seek(18)
 
             # Header data
             self.Header.SongName   = f.read( f.readu(1) ).decode()
@@ -235,24 +252,43 @@ class Dmf:
             self.Module.Tick2       = f.readu(1)
             self.Module.Framemode   = f.readu(1)
             self.Module.UseCustomHz = f.read_bool()
-            self.Module.CustomHz    = f.readu(1)*100 + f.readu(1)*10 + f.readu(1)
+            self.Module.CustomHz    = f.readu_str(3)
 
             # Pattern structure data
             self.Module.TOTAL_ROWS_PER_PATTERN = f.readu(4)
             self.Module.TOTAL_ROWS_PATTERN_MATRIX = f.readu(1)
 
             # Pattern matrix data
-            self.Module.PatternMatrix = [
-                    [i for i in f.readu(self.Module.TOTAL_ROWS_PATTERN_MATRIX)]
-                for _ in range(self.Module.SYSTEM_TOTAL_CHANNELS)
-            ]
+            # self.Module.PatternMatrix = []
+            # for _ in range(13):
+            #     self.Module.PatternMatrix.append(
+            #         [f.readu(1) for i in range(self.Module.TOTAL_ROWS_PATTERN_MATRIX)]
+            #     )
+
+            self.Module.PatternMatrix = []
+            for i in range(13):
+                lst = []
+                for j in range(self.Module.TOTAL_ROWS_PATTERN_MATRIX):
+                    lst.append(f.readu(1) )
+                self.Module.PatternMatrix.append(lst)
+
+
+            # self.Module.PatternMatrix = [
+            #     [f.readu(1) for i in range(self.Module.TOTAL_ROWS_PATTERN_MATRIX)] for _ in range(13)
+            # ]
+
 
             # Instrument data
-            for _ in range( f.readu(1) ):
+            AMOUNT_INS = f.readu(1)
+            for _ in range(AMOUNT_INS):
                 ins = _Ins()
 
                 ins.Name = f.read( f.readu(1) ).decode()
                 ins.Mode = f.readu(1)
+
+                # If STD instrument
+                if (ins.Mode == 0):
+                    raise NotImplementedError
 
                 # If FM instrument
                 if (ins.Mode == 1):
@@ -269,6 +305,15 @@ class Dmf:
 
                 self.Instruments.append(ins)
 
+            # Read wavetable data
+            # TODO: Implement proper reading
+            AMOUNT_WVTBL = f.readu(1)
+            for _ in range (AMOUNT_WVTBL):
+                size_wvt = f.readu(4)
+                table = []
+                for i in range(size_wvt):
+                    table.append(f.readu(4) )
+
             # Pattern data
             for channelId in range(13):    # TODO: Hardcoded amount of channels (YM2151+SPCM mode only)
                 
@@ -276,7 +321,7 @@ class Dmf:
                 channel.CHANNEL_EFFECT_COLLUMN_COUNT = f.readu(1)
                 channel.Sequence = [pttrn for pttrn in self.Module.PatternMatrix[channelId]]
 
-                for i in self.Module.TOTAL_ROWS_PATTERN_MATRIX:
+                for i in range(self.Module.TOTAL_ROWS_PATTERN_MATRIX):
 
                     patternId = channel.Sequence[i]
 
@@ -291,8 +336,8 @@ class Dmf:
                             row.Note = f.readu(2)
                             
                             row.Octave = f.readu(2)
-                            if (row.Note == 0x0C):    # New octave at 'C'
-                                row.Octave += 1
+                            #if (row.Note == 0x0C):    # New octave at 'C'
+                                #row.Octave += 1
 
                             row.Volume = f.readu(2)
 
@@ -308,26 +353,30 @@ class Dmf:
                         channel.Patterns[patternId] = pattern
 
                     else:
-                        skip_amount = (8 + (4 * channel.CHANNEL_EFFECT_COLLUMN_COUNT)) * self.Module.TOTAL_ROWS_PER_PATTERN
+                        skip_amount = ((4*channel.CHANNEL_EFFECT_COLLUMN_COUNT)+8)*self.Module.TOTAL_ROWS_PER_PATTERN
+                        #print ("Skipped pattern {} in channel {} with {} bytes".format(hex(patternId)[2:], channelId+1, skip_amount))
                         f.seek(skip_amount, 1) # Skip amount of bytes
                 
                 self.Module.Channels.append(channel)
 
-                TOTAL_SAMPLES = f.readu(1)
-                for _ in range(TOTAL_SAMPLES):
+            TOTAL_SAMPLES = f.readu(1)
+            for _ in range(TOTAL_SAMPLES):
 
-                    sample = _Sample()
-                    sample.SAMPLE_SIZE = f.readu(4)
+                sample = _Sample()
+                sample.SAMPLE_SIZE = f.readu(4)
 
-                    sample.Name  = f.read( f.readu(1) ).decode()
-                    sample.Rate  = f.readu(1)
-                    sample.Pitch = f.readu(1)
-                    sample.Amp   = f.readu(1)
-                    sample.Bits  = f.readu(1)
+                sample.Name  = f.read( f.readu(1) ).decode()
+                sample.Rate  = f.readu(1)
+                sample.Pitch = f.readu(1)
+                sample.Amp   = f.readu(1)
+                sample.Bits  = f.readu(1)
+                # Read data into array
+                if (sample.Bits is 8):
+                    sample.Data  = _array('b', [f.readu(2) for _ in range(sample.SAMPLE_SIZE)])
+                elif (sample.Bits is 16):
+                    sample.Data  = _array('h', [f.readu(2) for _ in range(sample.SAMPLE_SIZE)])
 
-                    sample.Data  = bytearray([f.readu(2) for _ in range(sample.SAMPLE_SIZE)])
-
-                    self.Samples.append(sample)
+                self.Samples.append(sample)
 
         return
 
