@@ -56,9 +56,9 @@ class Rest(Command):
             cmds = _array('B')
             
             while (clocks > 128):
-                cmds.append(Rest(128).Export())
+                cmds.extend(Rest(128).Export())
                 clocks -= 128
-            cmds.append(Rest(clocks).Export())
+            cmds.extend(Rest(clocks).Export())
             
             return cmds
 
@@ -71,6 +71,9 @@ class Note(Command):
     def __init__(self, Data, Clocks):
         if not(0x80 <= Data <= 0xDF):
             raise ValueError("Data out of range")
+            # Data = 0x80
+            # self.Data = Data
+            # self.Clocks = Clocks
         else:
             self.Data = Data
             self.Clocks = Clocks
@@ -167,7 +170,28 @@ class Pan(Command):
         self.Data = Data
 
     def Export(self):
-        return _array('B', [0xFC, self.Data])
+
+        # Correct the panning
+        if (type(self.Data) is str):
+            Data = self.Data.lower()
+            if (Data in ['l', 'c', 'r']):
+                Data = {
+                    'l': 0b01,
+                    'c': 0b11,
+                    'r': 0b10
+                }[Data]
+            else: Data = 0b11
+        elif (type(self.Data) is int):
+            if (self.Data in [0b10, 0b11, 0b01, 0b00]):
+                Data = {
+                    0b10: 0b01,
+                    0b11: 0b11,
+                    0b01: 0b10,
+                    0b00: 0b00
+                }[self.Data]
+            else: Data = 0b11
+
+        return _array('B', [0xFC, Data])
 
 
 class Volume(Command):

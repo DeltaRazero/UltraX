@@ -85,28 +85,7 @@ class Command_Interface:
 
 
     def Pan(self, Data):
-
-        # Correct the panning
-        if (type(Data) is str):
-            Data = Data.lower()
-            if (Data in ['l', 'c', 'r']):
-                Data = {
-                    'l': 0b01,
-                    'c': 0b11,
-                    'r': 0b10
-                }[Data]
-            else: Data = 0b11
-        elif (type(Data) is int):
-            if (Data in [0b10, 0b11, 0b01]):
-                Data = {
-                    0b10: 0b01,
-                    0b11: 0b11,
-                    0b01: 0b10
-                }[Data]
-            else: Data = 0b11
-
         self._a(_cmd.Pan(Data))
-
         return
 
 
