@@ -11,15 +11,13 @@
     | License: LGPL v3
     #---------------------------------------------------------------------#	
 '''
-import  argparse
-import  glob
-import  io
-import  os
-import  sys
+import argparse
+import glob
+import io
+import os
+import sys
 
-from ultrax_rsrc import  Locale
-from ultrax_rsrc import  compiler
-
+from ultrax_rsrc import uxc
 
 #************************************************
 #
@@ -29,7 +27,7 @@ from ultrax_rsrc import  compiler
 
 # Set the language. See ./ultrax_rsrc/Locale/ for the available languages.
 # 言語を設定します。使用可能な言語について ./ultrax_rsrc/Locale/ を参照してください。
-LANGUAGE = 'eng'
+LANGUAGE   = 'eng'
 DEBUG_MODE = True
 
 
@@ -41,9 +39,11 @@ on topic: XPMCK style notation for definiitons. e.g. {6'3} unrolls to be {6 6 6}
 """
 
 
+#************************************************
+
 
 class UltraX():
-    global Locale   # Does it need to be a global variable to be used within this class?
+    #global locale   # Does it need to be a global variable to be used within this class?
     global DEBUG_MODE
 
 
@@ -57,23 +57,23 @@ class UltraX():
     # Set the absolute path of the input file 
     def SetPath(self, Filename):
         if os.path.exists(Filename):   # If a full path given
-            self.Filepath = Filename
+            self.pFile = Filename
         else:
-            dirpath = os.path.realpath(__file__)    # Current directory
+            self.pDir = os.path.realpath(__file__)    # Current directory
             
-            self.Filepath = os.path.join(dirpath, Filename)
+            self.pFile = os.path.join(self.pDir, Filename)
             
-            if (os.path.splitext(self.Filepath)[1] == ''):  # If no extension given
-                self.Filepath = glob.glob(self.Filepath+".*")[0] # First file that matches in search
+            if (os.path.splitext(self.pFile)[1] == ''):  # If no extension given
+                self.pFile = glob.glob(self.pFile+".*")[0] # First file that matches in search
 
-            if not os.path.exists(self.Filepath):
+            if not os.path.exists(self.pFile):
                 return 0
 
         return 1
 
 
     def Parser(self):
-        parser = argparse.ArgumentParser(usage=Locale.JSON_DATA['parser']['usage'])
+        parser = argparse.ArgumentParser(usage=uxc.locale.JSON_DATA['parser']['usage'])
 
         parser.add_argument('Filename', action="store", type=str)
         parser.add_argument('-F', action="store_true", dest="Force")
@@ -83,11 +83,11 @@ class UltraX():
         if (argc < 2  and not DEBUG_MODE):
             print(parser.usage)
         else:
-            self.args = parser.parse_args([r"D:\Programming\UltraX\temp\test.mml"])
+            self.args = parser.parse_args([r"D:\Programming\UltraX\src\Fukurou_no_Hikou_2.dmf"])
 
             if not self.SetPath(self.args.Filename):
                 print(parser.usage)
-                print(Locale.JSON_DATA['error']['open_error'])
+                print(uxc.locale.JSON_DATA['error']['open_error'])
                 return
 
             if (self.args.Filename[-4:].lower() in [".mml", ".txt"]  or  self.args.Force):
@@ -106,14 +106,20 @@ class UltraX():
         if (self.C_MML  or  self.C_DMF):
             
             if self.C_MML:
-                mml = compiler.mml_ux.Mml(self.Filepath)
-                mml.Compile(self.args)
-            elif self.C_DMF:
                 pass
+                #mml = uxc.mml.Mml(self.Filepath)
+                #obj = mml.Compile(self.args)
+            elif self.C_DMF:
+                dmf = uxc.dmf.UXC_Dmf()
+                obj = dmf.Compile(self.pFile)
+
+            #with open(self.pDir+r"_out.mdx", 'wb') as f:
+            with open(self.pFile+r"_out.mdx", 'wb') as f:
+                f.write(obj.MdxObj.Export())
 
 
 #************************************************
 
 if __name__ == "__main__":
-    Locale.LoadJson(LANGUAGE)
+    uxc.locale.LoadJson(LANGUAGE)
     UltraX().Run()
