@@ -11,6 +11,12 @@ class Datatrack():
         self.Add = Command_Interface(self.Data)
         return
 
+
+    def Extend(self, List):
+        self.Data.extend(List)
+        return
+
+
     def _Export(self):
         """Exports the current datatrack object to a bytearray."""
 
