@@ -207,7 +207,7 @@ class UXC_Dmf:
                     else:
                         if (fx_cmds != self.EMPTY_FX_CMDS):
                             if (channel.NoteActive):
-                                #mdx.DataTracks[c].Data.insert(-1, pymdx.command.Legato() ) # TODO: make this better, not use insert?
+                                mdx.DataTracks[c].Data.insert(-1, pymdx.command.Legato() ) # TODO: make this better, not use insert?
                                 #mdx.DataTracks[c].Add.Legato()
                                 mdx.DataTracks[c].Extend(fx_cmds[0])
                                 if (fx_cmds[1] != []):
