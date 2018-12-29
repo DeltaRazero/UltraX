@@ -10,6 +10,8 @@ class Mdx:
         self.Header = Header(c)
         self.Tones = []
         self.DataTracks = [Datatrack() for _ in range(c)]
+        if Expcm:
+            self.DataTracks[0].Add.Expcm_Enable()
         return
 
     def Export(self):
