@@ -1,5 +1,5 @@
 """UltraX compiler, resources"""
 
-from . import dmf
+from .dmf import UXC_Dmf
 #from . import mml
 from . import locale

@@ -55,19 +55,21 @@ class UltraX():
 
 
     # Set the absolute path of the input file 
-    def SetPath(self, Filename):
-        if os.path.exists(Filename):   # If a full path given
-            self.pFile = Filename
+    def SetPath(self, path):
+        if os.path.exists(path):   # If a full path given
+            self.FilePath = path
+            self.DirPath = os.path.dirname(path)
         else:
-            self.pDir = os.path.realpath(__file__)    # Current directory
+            self.DirPath = os.path.realpath(__file__)    # Current directory
+            self.FilePath = os.path.join(self.DirPath, path)
             
-            self.pFile = os.path.join(self.pDir, Filename)
-            
-            if (os.path.splitext(self.pFile)[1] == ''):  # If no extension given
-                self.pFile = glob.glob(self.pFile+".*")[0] # First file that matches in search
+            if (os.path.splitext(self.FilePath)[1] == ''):  # If no extension given
+                self.FilePath = glob.glob(self.FilePath+".*")[0] # First file that matches in search
 
-            if not os.path.exists(self.pFile):
+            if not os.path.exists(self.FilePath):
                 return 0
+
+        self.FileName = os.path.basename(self.FilePath).split('.')[0]
 
         return 1
 
@@ -110,12 +112,24 @@ class UltraX():
                 #mml = uxc.mml.Mml(self.Filepath)
                 #obj = mml.Compile(self.args)
             elif self.C_DMF:
-                dmf = uxc.dmf.UXC_Dmf()
-                obj = dmf.Compile(self.pFile)
+                dmfc = uxc.UXC_Dmf()
+                obj = dmfc.Compile(self.FilePath)
 
-            #with open(self.pDir+r"_out.mdx", 'wb') as f:
-            with open(self.pFile+r"_out.mdx", 'wb') as f:
-                f.write(obj.MdxObj.Export())
+            # Display errors and warnings
+            for c, channel in enumerate(obj.Errors):
+                print(uxc.locale.JSON_DATA['error']['error_channel'].format(c+1) )
+                for error in channel:
+                    print(error)
+
+            # MDX export
+            if not (obj.MdxObj is None):
+                with open(os.path.join(self.DirPath, self.FileName + r".mdx"), 'wb') as f:
+                    f.write(obj.MdxObj.Export())
+            
+            # PDX export
+            if not (obj.PdxObj is None):
+                with open(os.path.join(self.DirPath, self.FileName + r".pdx"), 'wb') as f:
+                    f.write(obj.PdxObj.Export())
 
 
 #************************************************
