@@ -4,8 +4,10 @@
     },
 
     "error": {
+        "error_channel": "\nErrors for channel {} :\n---" ,
         "open_error": "\n Error opening file.",
-        "undefined": "Command {} at position {} in file {} is not defined."
+        "undefined": "Command {} at position {} in file {} is not defined.",
+        "note_below": "Note at Position {} : Pattern {} : Row {} went below minimum value\n(Minimum is D#0)"
     }
         
 }
