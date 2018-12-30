@@ -4,3 +4,4 @@ class UX_CompiledObj:
         self.Ticks = [0,0,0,0,0,0,0,0,0]
         self.Errors = []
         self.MdxObj = None
+        self.PdxObj = None
