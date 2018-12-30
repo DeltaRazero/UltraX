@@ -57,10 +57,16 @@ class Channel_Reader:
     Instrument : int = None
     Volume : int = None
 
+    Tickspeed : int = 1
+
     Porta : pymdx.command.Portamento = None
     PortaCount = 0
 
+    Vibrato = None
+
     Bpm : int = 0
+
+    SampleBank : int = 0
 
     Pattern : Pattern_Reader = None # Reference to patternreader object
     Position : int = None
@@ -84,6 +90,7 @@ class Channel_Reader:
             self.Position += Position
 
         self._SetPattern(Position)
+
         return
 
     def _SetPattern(self, Position):
@@ -97,4 +104,5 @@ class Channel_Reader:
             self.Pattern = None
         else:
             self.Pattern = Pattern_Reader(self._Patterns[self._Sequence[self.Position]])
+
         return
