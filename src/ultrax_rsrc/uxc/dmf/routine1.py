@@ -1,10 +1,21 @@
-from ... import pymdx
-from .reader import Channel_Reader, Pattern_Reader
+
+from .reader import Channel_Reader
+from .reader import Pattern_Reader
 
 from .. import locale
+from ... import pymdx
 
-#rowtick = 0x18
-TICKS_PER_ROW = 0x06
+
+#**********************************************************
+#
+#    Constants
+#
+#**********************************************************
+#region
+
+
+TICKS_PER_ROW = 0x06    # 0x18
+ROWS_PER_BEAT = 8
 
 VALUES_STEREO = {
         0x10: 0b01,  0xF0: 0b01,
@@ -16,27 +27,32 @@ VALUES_STEREO = {
 EMPTY_FX_CMDS = [ [], [] ]
 
 
-class Dmfc_Parser:
 
+#**********************************************************
+
+class Dmfc_Parser:
     Dmfc_Cntr = None
 
-
+#**********************************************************
+#
+#    Set general variables and settings
+#
+#**********************************************************
+#region
     def Compiler(self, Dmfc_Cntr):
 
         self.Dmfc_Cntr = Dmfc_Cntr
+        mod = Dmfc_Cntr.DmfObj.Module
 
         cr = [
             Channel_Reader(channel) for channel in 
                 Dmfc_Cntr.DmfObj.Module.Channels[:Dmfc_Cntr.AMOUNT_CHANNELS]
         ]
 
-        
-
-
         # Calculate the initial tempo
-        tempo = CalcTempo(Dmfc_Cntr.DmfObj.Module.Tick1, Dmfc_Cntr.REFRESH_RATE, Dmfc_Cntr.TIME_BASE)
-        if (Dmfc_Cntr.DmfObj.Module.Tick1 == Dmfc_Cntr.DmfObj.Module.Tick2 - 1  or  Dmfc_Cntr.DmfObj.Module.Tick1 == Dmfc_Cntr.DmfObj.Module.Tick2 + 1):
-            tempo = round((tempo + CalcTempo(Dmfc_Cntr.DmfObj.Module.Tick2, Dmfc_Cntr.REFRESH_RATE, Dmfc_Cntr.TIME_BASE)) / 2)
+        tempo = CalcTempo(mod.Tick1, Dmfc_Cntr.REFRESH_RATE, Dmfc_Cntr.TIME_BASE)
+        if (mod.Tick1 == mod.Tick2 - 1  or  mod.Tick1 == mod.Tick2 + 1):
+            tempo = round((tempo + CalcTempo(mod.Tick2, Dmfc_Cntr.REFRESH_RATE, Dmfc_Cntr.TIME_BASE)) / 2)
         Dmfc_Cntr.MdxObj.DataTracks[0].Add.Tempo_Bpm(tempo)
 
         # Init channel settings
@@ -54,9 +70,13 @@ class Dmfc_Parser:
                 channel.Volume = 0x7F
             
             channel.Bpm = tempo
-
-
-
+#endregion
+#**********************************************************
+#
+#    Global module reading routine
+#
+#**********************************************************
+#region
         done = [False for _ in range(len(cr))]
         # done = [True for _ in range(len(cr))]
         # done[8] = False
@@ -126,7 +146,14 @@ class Dmfc_Parser:
         return
 
 
+#**********************************************************
+#
+#    Row reading : Vol, Ins, Fx
+#
+#**********************************************************
+#region
     def Read_Fx(self, c, channel):
+        """Handles vol, ins, fx commands."""
         
         #region Effects/commands
         fx_cmds = [ [], [] ]
@@ -211,11 +238,18 @@ class Dmfc_Parser:
                         #    fx_cmds[1].append(pymdx.command.Note(0x80, 0))
                             # channel.new.portacounter()
         return fx_cmds
+#endregion
 
 
+#**********************************************************
+#
+#    Row reading : Note
+#    Command parsing
+#
+#**********************************************************
+#region
     def Read_Note(self, c, channel, fx_cmds):
-        # Row Note actions
-
+        """Handles Note actions."""
 
         row = channel.Pattern.Row
         chn_data = self.Dmfc_Cntr.Channels[c]
@@ -287,9 +321,17 @@ class Dmfc_Parser:
                 channel.Note = chn_data.Get(-1)
 
         return
+#endregion
 
 
 
+
+#**********************************************************
+#
+#    Utility methods
+#
+#**********************************************************
+#region
 
 # pattern_tick = speed / hertz
 # beat_duration = pattern_tick * amount_rows_for_beat (8)
@@ -297,10 +339,9 @@ class Dmfc_Parser:
 
 def CalcTempo(tickspeed, refresh=60, basetime=1):
     row_duration  = tickspeed / refresh
-    beat_duration = row_duration * 8
+    beat_duration = row_duration * ROWS_PER_BEAT
     bpm = (60 / beat_duration) / basetime
     return round(bpm)
-
 
 
 def GetHexDigit(position, hex_var):
@@ -308,6 +349,7 @@ def GetHexDigit(position, hex_var):
     # TODO: code to control if position not too far
     return int("0x"+var, 0)
 
+#endregion
 
 # PSEUDO CODE FOR DETUNE CALCULATION
 # command == E5xx
