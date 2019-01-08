@@ -1,49 +1,52 @@
+#!/usr/bin/python3
+
+# ---------------------------------------------------------
+# UltraX - Object oriented MXDRV2 compiler
+# ---------------------------------------------------------
+# Program author(s):
+#   * DeltaRazero 
+# Program version:
+#   v0.1
+# Program UI:
+#   Commandline / terminal
+# ---------------------------------------------------------
+# Python version:
+#   v3.6+
+# ----------------------------------------------------------
+# License / disribution:
+#   LGPL v3
+# ---------------------------------------------------------
 
 
-'''
-    #---------------------------------------------------------------------#
-    | Script Name: UltraX - Multi format MDX compiler
-    | Author: DeltaRazero
-    #---------------------------------------------------------------------#	
-    | Python version: v3.5+ // Visual Studio Code 1.28.2
-    | Script version: v0.1
-    #---------------------------------------------------------------------#	
-    | License: LGPL v3
-    #---------------------------------------------------------------------#	
-'''
+#**********************************************************
+
+
 import argparse
 import glob
-import io
 import os
 import sys
 
 from ultrax_rsrc import uxc
 
-#************************************************
+
+#**********************************************************
 #
 #   Setable user variables
 #
-#************************************************
+#**********************************************************
 
 # Set the language. See ./ultrax_rsrc/Locale/ for the available languages.
 # 言語を設定します。使用可能な言語について ./ultrax_rsrc/Locale/ を参照してください。
 LANGUAGE   = 'eng'
+
+# Enable debug mode. Will 
 DEBUG_MODE = True
 
 
-
-
-# TODO:
-"""
-on topic: XPMCK style notation for definiitons. e.g. {6'3} unrolls to be {6 6 6}, {6:3} unrolls to {6 5 4 3}, {6:3}+3 unrolls to be {9 8 7 6} etc.
-"""
-
-
-#************************************************
+#**********************************************************
 
 
 class UltraX():
-    #global locale   # Does it need to be a global variable to be used within this class?
     global DEBUG_MODE
 
 
@@ -53,17 +56,22 @@ class UltraX():
 
         self.args  = None
 
+        return
+
 
     # Set the absolute path of the input file 
-    def SetPath(self, path):
-        if os.path.exists(path):   # If a full path given
-            self.FilePath = path
-            self.DirPath = os.path.dirname(path)
+    def SetPath(self, fp):
+        # If a full path given
+        if os.path.exists(fp):
+            self.FilePath = fp
+            self.DirPath = os.path.dirname(fp)
+        # If filename only
         else:
-            self.DirPath = os.path.realpath(__file__)    # Current directory
-            self.FilePath = os.path.join(self.DirPath, path)
+            self.DirPath = os.path.realpath(__file__) # Current directory
+            self.FilePath = os.path.join(self.DirPath, fp)
             
-            if (os.path.splitext(self.FilePath)[1] == ''):  # If no extension given
+            # If no extension given
+            if (os.path.splitext(self.FilePath)[1] == ''):
                 self.FilePath = glob.glob(self.FilePath+".*")[0] # First file that matches in search
 
             if not os.path.exists(self.FilePath):
@@ -74,7 +82,7 @@ class UltraX():
         return 1
 
 
-    def Parser(self):
+    def ArgParser(self):
         parser = argparse.ArgumentParser(usage=uxc.locale.JSON_DATA['parser']['usage'])
 
         parser.add_argument('Filename', action="store", type=str)
@@ -85,7 +93,7 @@ class UltraX():
         if (argc < 2  and not DEBUG_MODE):
             print(parser.usage)
         else:
-            self.args = parser.parse_args([r"D:\Programming\UltraX\src\Fukurou_no_Hikou_2.dmf"])
+            self.args = parser.parse_args([r"D:\Programming\UltraX\src\outre.dmf"])
 
             if not self.SetPath(self.args.Filename):
                 print(parser.usage)
@@ -101,9 +109,9 @@ class UltraX():
         return
 
 
-    # The main function to run the UltraX backend
+    # Main UltraX method
     def Run(self):
-        self.Parser()
+        self.ArgParser()
 
         if (self.C_MML  or  self.C_DMF):
             
@@ -131,9 +139,12 @@ class UltraX():
                 with open(os.path.join(self.DirPath, self.FileName + r".pdx"), 'wb') as f:
                     f.write(obj.PdxObj.Export())
 
+        return
 
-#************************************************
 
+#**********************************************************
+
+# Main()
 if __name__ == "__main__":
     uxc.locale.LoadJson(LANGUAGE)
     UltraX().Run()
