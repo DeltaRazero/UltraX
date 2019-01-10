@@ -336,8 +336,9 @@ class Dmf:
                             row.Note = f.readu(2)
                             
                             row.Octave = f.readu(2)
-                            #if (row.Note == 0x0C):    # New octave at 'C'
-                                #row.Octave += 1
+                            if (row.Note == 0x0C):    # New octave at 'C'
+                                row.Note = 0
+                                row.Octave += 1
 
                             row.Volume = f.readu(2)
 
@@ -371,10 +372,11 @@ class Dmf:
                 sample.Amp   = f.readu(1)
                 sample.Bits  = f.readu(1)
                 # Read data into array
-                if (sample.Bits is 8):
-                    sample.Data  = _array('b', [f.readu(2) for _ in range(sample.SAMPLE_SIZE)])
-                elif (sample.Bits is 16):
-                    sample.Data  = _array('h', [f.readu(2) for _ in range(sample.SAMPLE_SIZE)])
+                #if (sample.Bits is 8):
+                sample.Data  = _array('h', [f.readu(2) for _ in range(sample.SAMPLE_SIZE)])
+                #elif (sample.Bits is 16):
+                #    sample.Data  = _array('h', [f.readu(2) for _ in range(sample.SAMPLE_SIZE)])
+                #sample.Data = [f.readu(2) for _ in range(sample.SAMPLE_SIZE)]
 
                 self.Samples.append(sample)
 
