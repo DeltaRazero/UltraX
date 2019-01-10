@@ -3,8 +3,9 @@ import struct as _struct
 from array import array as _array
 from enum import Enum as _Enum
 
-from .._misc import _encoding, _util
-from .._misc.exc import *
+from .._misc import _encoding
+from .._misc import _util
+#from .._misc.exc import *
 
 #**********************************************************
 #
@@ -57,7 +58,7 @@ class Rest(Command):
         return
 
     def Export(self):
-        if self.Clocks > 128:
+        if (self.Clocks > 128):
             clocks = self.Clocks
             cmds = _array('B')
             
@@ -67,6 +68,9 @@ class Rest(Command):
             cmds.extend(Rest(clocks).Export())
             
             return cmds
+
+        elif (self.Clocks < 1):
+            return _array('B')
 
         else:
             return _array('B', [self.Clocks-1])
@@ -92,7 +96,7 @@ class Note(Command):
     def Export(self):
         # if (0x80 > self.Data > 0xDF  or  self.Clocks < 0): raise AnException
 
-        if self.Clocks > 256:
+        if (self.Clocks > 256):
             clocks = self.Clocks
             cmds = _array('B')
             
@@ -104,6 +108,9 @@ class Note(Command):
             cmds.extend(Note(self.Data, clocks).Export())
             
             return cmds
+
+        elif (self.Clocks < 1):
+            return _array('B')
 
         else:
             return _array('B', [self.Data, self.Clocks-1])
