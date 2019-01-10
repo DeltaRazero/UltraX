@@ -49,7 +49,7 @@ class UXC_Dmf:
 
         # Set header data
         mdx.Header.Title = dmf.Header.SongName + " - " + dmf.Header.SongAuthor
-        mdx.Header.PdxFilename = "outre.dmf_out.pdx"
+        mdx.Header.PdxFilename = "outre.pdx"
 
         # Set tones
         for c, ins in enumerate(dmf.Instruments):
@@ -90,7 +90,7 @@ class UXC_Dmf:
 
         #mdx.DataTracks[0].Add.Repeat_End()
 
-
+        pcminfo.Uses_Pcm = False ######
 
         # PCM compiling
         if (pcminfo.Uses_Pcm):
@@ -99,8 +99,18 @@ class UXC_Dmf:
 
             for i, sample in enumerate(dmf.Samples):
                 pdx.Banks[0].Samples[i].Rate = sample.Rate
+
+
+
                 if sample.Bits == 8:
                     pdx.Banks[0].Samples[i].Encoding = pymdx._misc._encoding.SAMPLE_ENCODING.LPCM_8
+                elif sample.Bits == 16:
+                    pdx.Banks[0].Samples[i].Encoding = pymdx._misc._encoding.SAMPLE_ENCODING.LPCM_16
+                else:
+                    raise Exception
+
+                pdx.Banks[0].Samples[i].EncodeTo = pymdx._misc._encoding.SAMPLE_ENCODING.ADPCM_OKI
+
                 pdx.Banks[0].Samples[i].Data = sample.Data
 
             # errors / warnings
