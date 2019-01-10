@@ -59,6 +59,8 @@ class Channel_Reader:
 
     Tickspeed : int = 1
 
+    VolAdd = None
+
     Porta : pymdx.command.Portamento = None
     PortaCount = 0
 

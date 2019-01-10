@@ -14,7 +14,8 @@ from ... import pymdx
 #region
 
 
-TICKS_PER_ROW = 0x06    # 0x18
+TICKS_PER_ROW = 6    # Default: 6
+TICK_RATIO = TICKS_PER_ROW / 6
 ROWS_PER_BEAT = 8
 
 VALUES_STEREO = {
@@ -26,12 +27,16 @@ VALUES_STEREO = {
 
 EMPTY_FX_CMDS = [ [], [] ]
 
+ENABLE_FX_0A = False
+
 
 
 #**********************************************************
 
 class Dmfc_Parser:
     Dmfc_Cntr = None
+
+    CHANNEL_MASK = [1,1,1,1,1,1,1,1, 1,1,1,1,1]
 
 #**********************************************************
 #
@@ -65,8 +70,9 @@ class Dmfc_Parser:
             else:
                 if (Dmfc_Cntr.USES_EXPCM):
                     chn_data.Add(pymdx.command.Tone(0) )
-                #chn_data.Add(pymdx.command.Volume(0x9D) )
-                chn_data.Add(pymdx.command.Volume(0xA2) )
+                chn_data.Add(pymdx.command.Volume(0x9D) )
+                #chn_data.Add(pymdx.command.Volume(0xA2) )
+                #chn_data.Add(pymdx.command.Volume(0x80) )
                 channel.Volume = 0x7F
             
             channel.Bpm = tempo
@@ -77,13 +83,21 @@ class Dmfc_Parser:
 #
 #**********************************************************
 #region
+        # Set channel mask
         done = [False for _ in range(len(cr))]
-        # done = [True for _ in range(len(cr))]
-        # done[8] = False
-        # done[9] = False
-        # done[10] = False
-        # done[11] = False
-        # done[12] = False
+        for i, mask in enumerate(self.CHANNEL_MASK):
+            if mask is False: 
+                done[i] = True
+
+        # Set rest if first row empty
+        for c, channel in enumerate(cr):
+            row = channel.Pattern.Row
+            chn_data = self.Dmfc_Cntr.Channels[c]
+            if (row.Note == 0 and row.Octave == 0):
+                chn_data.Add(pymdx.command.Rest(0) )
+                channel.Note = chn_data.Get(-1)
+
+        # Main loop
         while not all(done):
 
             # Effects/commands
@@ -98,7 +112,11 @@ class Dmfc_Parser:
             #     row = channel.Pattern.Row
 
             #     for fx in row.Fx:
-            #         if 
+            #         if (fx.Value == 0x09  or  fx.Value == 0x0F):
+            #             if (fx.Value == 0x09): mod.Tick1 = fx.Value
+            #             if (fx.Value == 0x0F): mod.Tick2 = fx.Value
+            #             tempo = round((tempo + CalcTempo(mod.Tick2, Dmfc_Cntr.REFRESH_RATE, Dmfc_Cntr.TIME_BASE)) / 2)
+            #             Dmfc_Cntr.MdxObj.DataTracks[0].Add.Tempo_Bpm(tempo)
 
 
             # if tempo change
@@ -160,21 +178,62 @@ class Dmfc_Parser:
 
         row = channel.Pattern.Row
 
+        # Instrument column
         if not (row.Instr == -1):
             if (c < 8):
                 if not (row.Instr is channel.Instrument):
                     fx_cmds[0].append(pymdx.command.Tone(row.Instr))
                     channel.Instrument = row.Instr
 
+        # Volume column
         if not (row.Volume == -1):
             if not (row.Volume is channel.Volume):
                 volume = (-(row.Volume - 0x7F)) + 0x80
                 fx_cmds[0].append(pymdx.command.Volume(volume))
                 channel.Volume = row.Volume
 
+        # Set continious commands' state
+        noVolAdd = True
+
+        # Read and parse FX columns
         for fx in row.Fx:
             # FX commands only for YM2151
             if (c < 8):
+
+                # Volume 0Axy
+                if (fx.Code == 0x0A  and  ENABLE_FX_0A):
+                    noVolAdd = False
+
+                    # Disable
+                    if (fx.Value == 0x00):
+                        channel.VolAdd = None
+                    else:
+                        val_x = GetHexDigit(1, fx.Value)
+                        val_y = GetHexDigit(0, fx.Value)
+                        
+                        if not (val_x != 0  and  val_y != 0):
+                            if (val_x != 0):
+                                channel.VolAdd = val_x
+                            else:
+                                channel.VolAdd = -val_y
+
+                        multiplier = self.Dmfc_Cntr.REFRESH_RATE / 60
+                        value = channel.Volume + round(channel.VolAdd * (TICKS_PER_ROW * channel.Tickspeed) * multiplier)
+                        channel.VolAdd = value
+
+                        if (0 <= channel.Volume <= 0x7F):
+                            fx_cmds[0].append(CalcVolAdd(channel) )
+                        
+
+                    # vol = (channel.volume + value) * ticks
+                    # add command
+                    # channel.volume = vol
+                    # 
+                    # when reading row/fx
+                    # if 0A = true
+                    # if 0A command not in fx:
+                    # repeat the volume commands above
+
 
                 # Vibrato
                 if (fx.Code == 0x04):
@@ -201,15 +260,16 @@ class Dmfc_Parser:
                     
 
                 # Stereo/pan
-                if (fx.Code == 0x08):
+                elif (fx.Code == 0x08):
                     if (fx.Value in VALUES_STEREO):
                         fx_cmds[0].append(pymdx.command.Pan(VALUES_STEREO[fx.Value]))
                     else:
                         raise Exception
 
                 # Porta commands
-                elif (fx.Code == 0x01  or  fx.Code == 0x02  or  fx.Code == 0x03):
+                elif (fx.Code == 0x01  or  fx.Code == 0x02):    #   or  fx.Code == 0x03
 
+                    # Disable any form of porta
                     if (fx.Value == 0  or  fx.Value == -1):
                         channel.Porta = None
                         channel.PortaCount = 0
@@ -218,7 +278,7 @@ class Dmfc_Parser:
                         # TODO: The calculation is probably incorrect
                         mdx_hz = channel.Bpm / 60
                         multiplier = self.Dmfc_Cntr.REFRESH_RATE / mdx_hz
-                        value = round(fx.Value * (TICKS_PER_ROW * channel.Tickspeed) * multiplier)
+                        value = round(fx.Value * (TICKS_PER_ROW * channel.Tickspeed) * multiplier / TICK_RATIO)
                         value = pymdx._misc._util.Clamp(value, -32768, 32767)
 
                         # TODO: Note actions are a bit bugged with portas
@@ -231,12 +291,21 @@ class Dmfc_Parser:
                         elif (fx.Code == 0x02):
                             fx_cmds[0].append(pymdx.command.Portamento(-value))
 
-                        #channel.Porta = fx_cmds[0][-1]
+                        channel.Porta = fx_cmds[0][-1]
                         # Porta up
                         #elif (fx.Code == 0x03):
                         #    fx_cmds[0].append(pymdx.command.Portamento(fx.Value * multiplier))
                         #    fx_cmds[1].append(pymdx.command.Note(0x80, 0))
                             # channel.new.portacounter()
+
+        # Continious commands handling
+        if (channel.VolAdd  and  noVolAdd):
+            if (channel.VolAdd < 0 < channel.Volume):
+                fx_cmds[0].append(CalcVolAdd(channel) )
+
+            elif (channel.VolAdd > 0  and  channel.Volume < 0x7F):
+                fx_cmds[0].append(CalcVolAdd(channel) )
+
         return fx_cmds
 #endregion
 
@@ -253,57 +322,58 @@ class Dmfc_Parser:
 
         row = channel.Pattern.Row
         chn_data = self.Dmfc_Cntr.Channels[c]
+
+        uses_fx = fx_cmds != EMPTY_FX_CMDS
         
-        # Empty
+        # No note data
         if (row.Note == 0 and row.Octave == 0):
-            # If first row in module
-            if (channel.Note is None):
-                chn_data.Extend(fx_cmds[0])
-                chn_data.Add(pymdx.command.Rest(TICKS_PER_ROW) )
-                channel.Note = chn_data.Get(-1)
-            else:
-                if (fx_cmds != EMPTY_FX_CMDS):
-                    if (channel.NoteActive):
-                        chn_data.Insert(-1, pymdx.command.Legato() ) # TODO: make this better, not use insert?
-                        #mdx.DataTracks[c].Add.Legato()
-                        chn_data.Extend(fx_cmds[0])
-                        if (fx_cmds[1] != []):
-                            chn_data.Extend(fx_cmds[1])
-                        else:
-                            chn_data.Add(pymdx.command.Note(channel.Note.Data, 0) )
+            
+            # If FX/Commands present
+            if (uses_fx):
+                if (channel.NoteActive):
+                    chn_data.Insert(-1, pymdx.command.Legato() ) # TODO: make this better, not use insert?
+                    chn_data.Extend(fx_cmds[0])
+                    if (fx_cmds[1] != []):
+                        chn_data.Extend(fx_cmds[1])
                     else:
-                        chn_data.Extend(fx_cmds[0])
-                        chn_data.Add(pymdx.command.Rest(0) )
-                    # Set reference to current Note/Rest
-                    channel.Note = chn_data.Get(-1)
+                        chn_data.Add(pymdx.command.Note(channel.Note.Data, 0) )
+                else:
+                    chn_data.Extend(fx_cmds[0])
+                    chn_data.Add(pymdx.command.Rest(0) )
+                # Set reference to current Note/Rest
+                channel.Note = chn_data.Get(-1)
 
-                if (c > 7):
-                    if (channel.Note.Clocks + TICKS_PER_ROW > 0xFF):
-                        chn_data.Add(pymdx.command.Rest(0) )
-                        channel.Note = chn_data.Get(-1) ####
-                        channel.NoteActive = False
+            # If sample channel
+            # Sample channels dislike usage of legato command
+            if (c > 7):
+                if (channel.Note.Clocks + TICKS_PER_ROW > 0xFF):
+                    chn_data.Add(pymdx.command.Rest(0) )
+                    channel.Note = chn_data.Get(-1) ####
+                    channel.NoteActive = False
 
-                channel.Note.Clocks += TICKS_PER_ROW
-                #print(channel.Note.Clocks)
+            channel.Note.Clocks += TICKS_PER_ROW
+
+
         # Note data
         else:
+
+            if (uses_fx):
+                chn_data.Extend(fx_cmds[0])
+
             # Note OFF
             if (row.Note == 100):
-                if (channel.NoteActive):
-                    if (fx_cmds != []):
-                        chn_data.Extend(fx_cmds[0])
+                if (channel.NoteActive or uses_fx):
                     chn_data.Add(pymdx.command.Rest(TICKS_PER_ROW) )
                     channel.NoteActive = False
                     channel.Note = chn_data.Get(-1)
                 # Note OFF when note already OFF
                 else:
-                    if not (channel.Note is None):
-                        channel.Note.Clocks += TICKS_PER_ROW
+                    channel.Note.Clocks += TICKS_PER_ROW
+
             # Note ON
             else:
-                if (fx_cmds != []):
-                    chn_data.Extend(fx_cmds[0])
                 #note = row.Note + (12 * row.Octave) + 0x7D
+                # FM channels
                 if (c < 8):
                     note = row.Note + (12 * row.Octave) + 0x7D
                     if (note < 0x80):
@@ -314,15 +384,16 @@ class Dmfc_Parser:
                     else:
                         chn_data.Add(pymdx.command.Note(note, TICKS_PER_ROW) )
 
+                # Sample channels
                 else:
                     note = row.Note + (12 * channel.SampleBank) + 0x80
                     chn_data.Add(pymdx.command.Note(note, TICKS_PER_ROW) )
+
                 channel.NoteActive = True
                 channel.Note = chn_data.Get(-1)
 
         return
 #endregion
-
 
 
 
@@ -340,12 +411,25 @@ class Dmfc_Parser:
 def CalcTempo(tickspeed, refresh=60, basetime=1):
     row_duration  = tickspeed / refresh
     beat_duration = row_duration * ROWS_PER_BEAT
-    bpm = (60 / beat_duration) / basetime
-    return round(bpm)
+    bpm = 60 / beat_duration / basetime
+    return round(bpm * TICK_RATIO)
 
 
+# TODO: inaccurate calculation + not taking REFRESH_RATE into account
+# TODO: have possibility to do addition/subtraction per clock instead of per row
+def CalcVolAdd(channel):
+    
+
+
+    vol = (channel.Volume + channel.VolAdd) * channel.Tickspeed
+    channel.Volume = pymdx._misc._util.Clamp(vol, 0, 0x7F)
+    vol = (-(channel.Volume - 0x7F)) + 0x80
+    return pymdx.command.Volume(vol)
+
+
+# TODO: Make something better (this is way too pythonic and shitty)
 def GetHexDigit(position, hex_var):
-    var = hex(hex_var)[-position - 1]
+    var = "{0:0{1}x}".format(hex_var,2)[-position - 1]
     # TODO: code to control if position not too far
     return int("0x"+var, 0)
 
@@ -363,3 +447,17 @@ def GetHexDigit(position, hex_var):
 #   if command_value > 0:
 #       command_value = 0
 #   note -= 1
+
+
+
+# 0Axy:
+#
+# vol = (channel.volume + value) * ticks
+# add command
+# channel.volume = vol
+# 
+# when reading row/fx
+# if 0A = true
+# if 0A command not in fx:
+# repeat the volume commands above
+
