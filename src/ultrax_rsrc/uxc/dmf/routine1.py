@@ -1,6 +1,7 @@
 
 from .reader import Channel_Reader
 from .reader import Pattern_Reader
+from .reader import PORTA_TYPES as _PORTA_TYPES
 
 from .. import locale
 from ... import pymdx
@@ -13,15 +14,16 @@ from ... import pymdx
 #**********************************************************
 #region
 
-
-TICKS_PER_ROW = 6    # Default: 6
+# Default: 6 ticks per row + 8 rows per beat
+# 6*8 = 48 clocks per beat (default MXDRV behaviour)
+TICKS_PER_ROW = 6
 TICK_RATIO = TICKS_PER_ROW / 6
 ROWS_PER_BEAT = 8
 
 VALUES_STEREO = {
-        0x10: 0b01,  0xF0: 0b01,
+        0x10: 0b10,  0xF0: 0b10,
         0x11: 0b11,  0xFF: 0b11,
-        0x01: 0b10,  0x0F: 0b10,
+        0x01: 0b01,  0x0F: 0b01,
         0x00: 0b00
     }
 
@@ -62,20 +64,29 @@ class Dmfc_Parser:
 
         # Init channel settings
         for c, channel in enumerate(cr):
+
             chn_data = Dmfc_Cntr.Channels[c]
+
+            # Tempo related
+            channel.State.Tempo_Tick1 = mod.Tick1
+            channel.State.Tempo_Tick2 = mod.Tick2
+            channel.State.Tempo_BaseTime = Dmfc_Cntr.TIME_BASE
+            channel.State.Tempo_RefreshRate = Dmfc_Cntr.REFRESH_RATE
+
+            # Volume + Tone
+            # FM channels
             if (c < 8):
-                chn_data.Add(pymdx.command.Volume(0x80) )
-                chn_data.Add(pymdx.command.Tone(0) )
-                channel.Volume = 0x7F
+                chn_data.Add(pymdx.command.Volume(0x80) ); channel.State.Volume = 0x7F
+                chn_data.Add(pymdx.command.Tone(0) ); channel.State.Tone_Number = 0
+                
+            # Sample channels
             else:
                 if (Dmfc_Cntr.USES_EXPCM):
                     chn_data.Add(pymdx.command.Tone(0) )
-                chn_data.Add(pymdx.command.Volume(0x9D) )
-                #chn_data.Add(pymdx.command.Volume(0xA2) )
-                #chn_data.Add(pymdx.command.Volume(0x80) )
-                channel.Volume = 0x7F
-            
-            channel.Bpm = tempo
+                chn_data.Add(pymdx.command.Volume(0x9D) ); channel.State.Volume = 0x7F
+                
+            channel.State.Tempo_Bpm = tempo
+
 #endregion
 #**********************************************************
 #
@@ -95,13 +106,13 @@ class Dmfc_Parser:
             chn_data = self.Dmfc_Cntr.Channels[c]
             if (row.Note == 0 and row.Octave == 0):
                 chn_data.Add(pymdx.command.Rest(0) )
-                channel.Note = chn_data.Get(-1)
+                channel.State.Note_Cmd = chn_data.Get(-1)
 
         # Main loop
         while not all(done):
 
             # Effects/commands
-            special_cmds = [ [], [] ]
+            #special_cmds = [ [], [] ]
 
             # Special commands
             # for c, channel in enumerate(cr):
@@ -158,7 +169,7 @@ class Dmfc_Parser:
         
         # Cut off any notes, if active
         for c, channel in enumerate(cr):
-            if (channel.NoteActive):
+            if (channel.State.Note_IsActive):
                 Dmfc_Cntr.Channels[c].Add(pymdx.command.Rest(TICKS_PER_ROW) )
 
         return
@@ -181,19 +192,19 @@ class Dmfc_Parser:
         # Instrument column
         if not (row.Instr == -1):
             if (c < 8):
-                if not (row.Instr is channel.Instrument):
+                if not (row.Instr is channel.State.Tone_Number):
                     fx_cmds[0].append(pymdx.command.Tone(row.Instr))
-                    channel.Instrument = row.Instr
+                    channel.State.Tone_Number = row.Instr
 
         # Volume column
         if not (row.Volume == -1):
-            if not (row.Volume is channel.Volume):
+            if not (row.Volume is channel.State.Volume):
                 volume = (-(row.Volume - 0x7F)) + 0x80
                 fx_cmds[0].append(pymdx.command.Volume(volume))
-                channel.Volume = row.Volume
+                channel.State.Volume = row.Volume
 
         # Set continious commands' state
-        noVolAdd = True
+        #noVolAdd = True
 
         # Read and parse FX columns
         for fx in row.Fx:
@@ -206,16 +217,16 @@ class Dmfc_Parser:
 
                     # Disable
                     if (fx.Value == 0x00):
-                        channel.VolAdd = None
+                        channel.State.Vol_Add = None
                     else:
                         val_x = GetHexDigit(1, fx.Value)
                         val_y = GetHexDigit(0, fx.Value)
                         
                         if not (val_x != 0  and  val_y != 0):
                             if (val_x != 0):
-                                channel.VolAdd = val_x
+                                channel.State.Vol_Add = val_x
                             else:
-                                channel.VolAdd = -val_y
+                                channel.State.Vol_Add = -val_y
 
                         multiplier = self.Dmfc_Cntr.REFRESH_RATE / 60
                         value = channel.Volume + round(channel.VolAdd * (TICKS_PER_ROW * channel.Tickspeed) * multiplier)
@@ -236,75 +247,170 @@ class Dmfc_Parser:
 
 
                 # Vibrato
-                if (fx.Code == 0x04):
+                elif (fx.Code == 0x04):
                     if (fx.Value == 0x00 or fx.Value == -1):
-                        if (channel.Vibrato):
+                        if (channel.State.Vib_IsActive):
                             fx_cmds[0].append(pymdx.command.Lfo_Pitch_Disable() )
-                        channel.Vibrato = None
+                            channel.State.Vib_Cmd = None
+                            channel.State.Vib_IsActive = False
                     else:
-                        pass
 
-                        # if not (channel.Vibrato):
-                        #     fx_cmds[0].append(pymdx.command.Lfo_Pitch_Enable() )
-                        # fx_cmds[0].append(pymdx.command.Lfo_Pitch_Control(
-                        #     # TODO: _cmd.py LFO commands should check if enum or int and convert to int if enum
-                        #     #pymdx.command.LFO_WAVEFORM.TRIANGLE.value,
-                        #     2,
-                        #     GetHexDigit(1, fx.Value) * 1 * 3, # * mod_hz,
-                        #     GetHexDigit(0, fx.Value) * 180
-                        # ))
-                        # channel.Vibrato = fx_cmds[0][-1]
+                        if not (channel.State.Vib_IsActive):
+                            fx_cmds[0].append(pymdx.command.Lfo_Pitch_Enable() )
+                            channel.State.Vib_IsActive = True
+                        fx_cmds[0].append(pymdx.command.Lfo_Pitch_Control(
+                            # TODO: _cmd.py LFO commands should check if enum or int and convert to int if enum
+                            2, #pymdx.command.LFO_WAVEFORM.TRIANGLE.value,
+                            30, #GetHexDigit(1, fx.Value) * 1 * 3, # * mod_hz,
+                            GetHexDigit(0, fx.Value) * 120
+                        ))
+                        channel.State.Vib_Cmd = fx_cmds[0][-1]
 
                         # Speed: Set the number of steps. Step number of LFO 1/4 period (the smaller, the faster)
                         # Depth: Units are 1/64 of semitone (= D1)
-                    
 
                 # Stereo/pan
                 elif (fx.Code == 0x08):
                     if (fx.Value in VALUES_STEREO):
-                        fx_cmds[0].append(pymdx.command.Pan(VALUES_STEREO[fx.Value]))
-                    else:
-                        raise Exception
+                        value = VALUES_STEREO[fx.Value]
+                        if not (value == channel.State.Pan_Cmd.Data):
+                            fx_cmds[0].append(pymdx.command.Pan(value) )
+
 
                 # Porta commands
-                elif (fx.Code == 0x01  or  fx.Code == 0x02):    #   or  fx.Code == 0x03
+                elif (fx.Code == 0x01  or  fx.Code == 0x02  or fx.Code == 0x03):    #   or  fx.Code == 0x03
 
                     # Disable any form of porta
                     if (fx.Value == 0  or  fx.Value == -1):
-                        channel.Porta = None
-                        channel.PortaCount = 0
+                        if (channel.State.Porta_IsActive):
+                            fx_cmds[0].append(pymdx.command.Portamento(0))
+                            channel.State.Porta_Reset()
 
                     else:
                         # TODO: The calculation is probably incorrect
-                        mdx_hz = channel.Bpm / 60
+                        mdx_hz = channel.State.Tempo_Bpm / 60
                         multiplier = self.Dmfc_Cntr.REFRESH_RATE / mdx_hz
-                        value = round(fx.Value * (TICKS_PER_ROW * channel.Tickspeed) * multiplier / TICK_RATIO)
+                        #value = round(fx.Value * (TICKS_PER_ROW * channel.State.Tempo_Tick1 * channel.State.Tempo_BaseTime) * multiplier / TICK_RATIO)
+                        value = round(fx.Value * (TICKS_PER_ROW * channel.State.Tempo_Tick1) * multiplier / TICK_RATIO)
                         value = pymdx._misc._util.Clamp(value, -32768, 32767)
 
-                        # TODO: Note actions are a bit bugged with portas
 
-                        # Porta up
-                        if (fx.Code == 0x01):
-                            fx_cmds[0].append(pymdx.command.Portamento(value))
+                        # Porta up or Porta Down
+                        # TODO: Cleanup
+                        if (fx.Code == 0x01 or fx.Code == 0x02):
 
-                        # Porta down
-                        elif (fx.Code == 0x02):
-                            fx_cmds[0].append(pymdx.command.Portamento(-value))
+                            if (fx.Code == 0x01):
+                                channel.State.Porta_Type = _PORTA_TYPES.PORTA_01
+                            else:
+                                channel.State.Porta_Type = _PORTA_TYPES.PORTA_02
+                                value = -value
 
-                        channel.Porta = fx_cmds[0][-1]
-                        # Porta up
-                        #elif (fx.Code == 0x03):
-                        #    fx_cmds[0].append(pymdx.command.Portamento(fx.Value * multiplier))
-                        #    fx_cmds[1].append(pymdx.command.Note(0x80, 0))
-                            # channel.new.portacounter()
+                            if not (channel.State.Porta_Cmd.Data == value):
+                                fx_cmds[0].append(pymdx.command.Portamento(value))
+                                channel.State.Porta_IsActive = True
+                                channel.Porta_Cmd = fx_cmds[0][-1]
+
+                            channel.State.Porta_IsTonePorta = False
+
+
+                        elif (fx.Code == 0x03):
+                            if (row.Note != -1):
+
+                                channel.State.Porta_Type = _PORTA_TYPES.PORTA_03
+
+                                inter = (row.Note + (12 * row.Octave) + 0x7D)
+
+                                target = inter - 0x80
+                                target *= 16384
+                                #note += channel.Detune
+
+                                channel.State.Porta_Current = (channel.State.Note_Cmd.Data - 0x80) * 16384
+
+                                # Delete note value as its not going to be used in note on
+                                # TODO: Make this better / more elegant
+                                row.Note = 0
+                                row.Octave = 0
+
+                                # target = row.Note + (12 * row.Octave) - 0x80
+                                # target *= 64
+
+                                if (channel.State.Porta_Current != target):
+
+                                    #portanote = channel.PortaCurrent + channel.Porta.Data * TICKS_PER_ROW
+
+                                    channel.State.Porta_Target = target
+                                    # If porta DOWN
+                                    if (channel.State.Porta_Current > target):
+                                        value = -value
+
+                                    fx_cmds[0].append(pymdx.command.Portamento(value))
+                                    channel.State.Porta_Cmd = fx_cmds[0][-1]
+
+
+            # FX commands only for PCM/ADPCM
+            else:
+                # Stereo/pan
+                if (fx.Code == 0x08):
+                    # Correct value
+                    # TODO: add volume support
+                    value = 0x00
+                    if (GetHexDigit(0, fx.Value) > 0): value |= 0x01
+                    if (GetHexDigit(1, fx.Value) > 0): value |= 0x10
+
+                    channel
+
+                    fx_cmds[0].append(pymdx.command.Pan(VALUES_STEREO[value]) )
+
+
+            # FX/Commands supported by all channels
+            # Sample bank switch
+            if (fx.Code == 0xEB):
+                # TODO: value checking
+                # TODO: only update for sample channels
+                # TODO: dont update if same value(?)
+                for chn in channel:
+                    chn.SampleBank = fx.Value
+
 
         # Continious commands handling
-        if (channel.VolAdd  and  noVolAdd):
-            if (channel.VolAdd < 0 < channel.Volume):
-                fx_cmds[0].append(CalcVolAdd(channel) )
+        # if (channel.VolAdd  and  noVolAdd):
+        #     if (channel.VolAdd < 0 < channel.Volume):
+        #         fx_cmds[0].append(CalcVolAdd(channel) )
 
-            elif (channel.VolAdd > 0  and  channel.Volume < 0x7F):
-                fx_cmds[0].append(CalcVolAdd(channel) )
+        #     elif (channel.VolAdd > 0  and  channel.Volume < 0x7F):
+        #         fx_cmds[0].append(CalcVolAdd(channel) )
+
+        if (channel.State.Porta_IsAdjusted):
+            portanote = channel.State.Porta_Current + (channel.State.Porta_Cmd.Data * TICKS_PER_ROW)
+            #channel.PortaNote = pymdx._misc._util.Clamp(portanote, 0, 32000)
+
+            if (channel.State.Porta_IsAdjusted):
+
+                #fx_cmds[0].append(pymdx.command.Legato() )
+                fx_cmds[0].append(pymdx.command.Portamento(0))
+                note = int(channel.PortaTarget / 16384) + 0x80
+                fx_cmds[1].append(pymdx.command.Note(note, 0) )
+                channel.State.Note_Cmd = fx_cmds[1][-1] ####
+
+                channel.State.Porta_Reset()
+
+
+            elif (channel.State.Porta_Type is _PORTA_TYPES.PORTA_03):
+                portaup = channel.Porta.Data > 0
+                # 0x03 cmd
+                if (portaup and portanote > channel.State.Porta_Target) or (not portaup and portanote < channel.State.Porta_Target):
+                    adjust = (channel.State.Porta_Target - channel.State.Porta_Current)
+                    adjust = int(adjust / TICKS_PER_ROW)
+                    adjust = pymdx._misc._util.Clamp(adjust, -32768, 32767)
+                    fx_cmds[0].append(pymdx.command.Portamento(adjust)) ##
+                    channel.State.Porta_Cmd = fx_cmds[0][-1]
+
+                    channel.State.Porta_IsAdjusted = True
+
+
+            else:
+                channel.PortaCurrent += (channel.Porta.Data * TICKS_PER_ROW)
+
 
         return fx_cmds
 #endregion
@@ -327,48 +433,62 @@ class Dmfc_Parser:
         
         # No note data
         if (row.Note == 0 and row.Octave == 0):
-            
+
             # If FX/Commands present
             if (uses_fx):
-                if (channel.NoteActive):
+                if (channel.State.Note_IsActive):
                     chn_data.Insert(-1, pymdx.command.Legato() ) # TODO: make this better, not use insert?
                     chn_data.Extend(fx_cmds[0])
                     if (fx_cmds[1] != []):
                         chn_data.Extend(fx_cmds[1])
+                    elif (channel.State.Porta_IsAdjusted):
+                        chn_data.Add(pymdx.command.Rest(0) )
                     else:
-                        chn_data.Add(pymdx.command.Note(channel.Note.Data, 0) )
+                        chn_data.Add(pymdx.command.Note(channel.State.Note_Cmd.Data, 0) )
                 else:
                     chn_data.Extend(fx_cmds[0])
                     chn_data.Add(pymdx.command.Rest(0) )
                 # Set reference to current Note/Rest
-                channel.Note = chn_data.Get(-1)
+                channel.State.Note_Cmd = chn_data.Get(-1)
 
             # If sample channel
             # Sample channels dislike usage of legato command
             if (c > 7):
-                if (channel.Note.Clocks + TICKS_PER_ROW > 0xFF):
+                if (channel.State.Note_Cmd.Clocks + TICKS_PER_ROW > 0xFF):
                     chn_data.Add(pymdx.command.Rest(0) )
-                    channel.Note = chn_data.Get(-1) ####
-                    channel.NoteActive = False
+                    channel.State.Note_Cmd = chn_data.Get(-1) ####
+                    channel.State.Note_IsActive = False
 
-            channel.Note.Clocks += TICKS_PER_ROW
+            channel.State.Note_Cmd.Clocks += TICKS_PER_ROW
 
 
         # Note data
         else:
+
+            if (channel.State.Porta_IsActive):
+
+                if (channel.State.Porta_IsTonePorta):
+                    chn_data.Add(pymdx.command.Portamento(0) )
+                    channel.State.Porta_Reset()
+                else:
+                    porta = pymdx.command.Portamento(channel.State.Porta_Cmd.Data)
+                    #channel.Porta = 
+                    chn_data.Add(porta)
+
+                
 
             if (uses_fx):
                 chn_data.Extend(fx_cmds[0])
 
             # Note OFF
             if (row.Note == 100):
-                if (channel.NoteActive or uses_fx):
+                if (channel.State.Note_IsActive or uses_fx):
                     chn_data.Add(pymdx.command.Rest(TICKS_PER_ROW) )
-                    channel.NoteActive = False
-                    channel.Note = chn_data.Get(-1)
+                    channel.State.Note_IsActive = False
+                    channel.State.Note_Cmd = chn_data.Get(-1)
                 # Note OFF when note already OFF
                 else:
-                    channel.Note.Clocks += TICKS_PER_ROW
+                    channel.State.Note_Cmd.Clocks += TICKS_PER_ROW
 
             # Note ON
             else:
@@ -386,11 +506,11 @@ class Dmfc_Parser:
 
                 # Sample channels
                 else:
-                    note = row.Note + (12 * channel.SampleBank) + 0x80
+                    note = row.Note + (12 * channel.State.SampleBank) + 0x80
                     chn_data.Add(pymdx.command.Note(note, TICKS_PER_ROW) )
 
-                channel.NoteActive = True
-                channel.Note = chn_data.Get(-1)
+                channel.State.Note_IsActive = True
+                channel.State.Note_Cmd = chn_data.Get(-1)
 
         return
 #endregion

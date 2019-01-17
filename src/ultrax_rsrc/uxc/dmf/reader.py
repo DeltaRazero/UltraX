@@ -3,6 +3,8 @@
 from . import dmf
 from ... import pymdx
 
+from enum import Enum as _Enum
+
 
 
 class Pattern_Reader:
@@ -48,27 +50,66 @@ class Pattern_Reader:
         return
 
 
+
+class PORTA_TYPES(_Enum):
+    PORTA_NONE = 0
+    PORTA_01 = 1
+    PORTA_02 = 2
+    PORTA_03 = 3
+    PORTA_E1 = 4
+    PORTA_E2 = 5
+
+
+
+class Channel_States:
+
+    Porta_Cmd : pymdx.command.Portamento = pymdx.command.Portamento(0)
+    Porta_Current : int = 0
+    Porta_Target : int = 0
+    Porta_Type : PORTA_TYPES = PORTA_TYPES.PORTA_NONE
+    Porta_IsTonePorta : bool = False
+    Porta_IsAdjusted : bool = False
+    Porta_IsActive : bool = False
+
+    def Porta_Reset(self):
+        self.Porta_Cmd = pymdx.command.Portamento(0)
+        self.Porta_Type = PORTA_TYPES.PORTA_NONE
+        self.Porta_IsTonePorta  = False
+        self.Porta_IsAdjusted = False
+        self.Porta_IsActive = False
+        self.Porta_Current = 0
+        self.Porta_Target = 0
+        return
+
+    Note_Cmd : pymdx.command.Note = None    # Reference to current note command obj
+    # NOTE: Maybe have seperate Rest command ref var?
+    Note_IsActive : bool = False
+
+    Tone_Number : int = 0
+
+    Volume : int = 0
+    Vol_Add = None
+
+    Pan_Cmd : pymdx.command.Pan = pymdx.command.Pan(0b11)
+
+    Tempo_Bpm : int = 0
+    Tempo_Tick1 : int = 0
+    Tempo_Tick2 : int = 0
+    Tempo_BaseTime : int = 0
+    Tempo_RefreshRate : int = 0
+
+    Vib_Cmd : pymdx.command.Lfo_Pitch_Control = None
+    Vib_IsActive : bool = False
+
+    SampleBank : int = 0
+
+
+
+
 class Channel_Reader:
     """Reads channels"""
 
-
-    NoteActive : bool = False
-    Note : pymdx.command.Note = None    # Reference to current note command obj
-    Instrument : int = None
-    Volume : int = None
-
-    Tickspeed : int = 1
-
-    VolAdd = None
-
-    Porta : pymdx.command.Portamento = None
-    PortaCount = 0
-
-    Vibrato = None
-
-    Bpm : int = 0
-
-    SampleBank : int = 0
+    State : Channel_States = None
 
     Pattern : Pattern_Reader = None # Reference to patternreader object
     Position : int = None
@@ -77,6 +118,7 @@ class Channel_Reader:
     _Sequence = []
 
     def __init__(self, DmfChannel_Obj):
+        self.State = Channel_States()
         self._Patterns = DmfChannel_Obj.Patterns
         self._Sequence = DmfChannel_Obj.Sequence
         self.Position = 0
